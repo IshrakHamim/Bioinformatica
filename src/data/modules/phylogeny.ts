@@ -1,0 +1,90 @@
+import type { Module } from '../types';
+import content from '../content/phylogeny.md?raw';
+
+const m: Module = {
+  id: 'phylogeny',
+  track: 'cse443',
+  code: 'L11',
+  title: 'Phylogeny Construction',
+  subtitle: 'Distance matrices, additive trees, limb length, UPGMA, neighbor joining, parsimony',
+  icon: '🌳',
+  color: '#2b8a3e',
+  exam: 'final',
+  hours: 4.5,
+  prereqs: ['alignment', 'expression1'],
+  content,
+  concepts: ['tree', 'distance-matrix', 'additive', 'limb-length', 'ultrametric', 'upgma', 'neighbor-joining', 'parsimony'],
+  videos: [
+    { id: '09eD4A_HxVQ', title: 'Creating a Phylogenetic Tree', channel: 'Oxford Academic (Oxford University Press)', why: 'Reading and building trees.' },
+    { id: 'HMKAD13pncQ', title: 'UPGMA method', channel: 'Bio Scholar', why: 'Step-by-step UPGMA like Final Q2.' },
+    { id: 'Dj24mCLQYUE', title: 'Neighbour Joining', channel: 'Anders Gorm Pedersen', why: 'NJ from a phylogenetics lecturer.' },
+  ],
+  articles: [
+    { title: 'Saitou & Nei (1987) The neighbor-joining method', url: 'https://doi.org/10.1093/oxfordjournals.molbev.a040454', source: 'Molecular Biology and Evolution', why: 'The original NJ paper.' },
+    { title: 'Chapter 7: Which Animal Gave Us SARS?', url: 'https://www.bioinformaticsalgorithms.org/', source: 'Compeau & Pevzner', why: 'Lecture source (Vol. 2).' },
+    { title: 'Nextstrain: real-time tracking of pathogen evolution', url: 'https://nextstrain.org/', source: 'Nextstrain', why: 'Live phylogenies of SARS-CoV-2, influenza, mpox…' },
+    { title: 'IQ-TREE', url: 'http://www.iqtree.org/', source: 'IQ-TREE', why: 'State-of-the-art maximum-likelihood phylogenetics.' },
+  ],
+  rosalind: [
+    { id: 'ba7a', title: 'Compute Distances Between Leaves' },
+    { id: 'ba7b', title: 'Compute Limb Lengths in a Tree' },
+    { id: 'ba7c', title: 'Implement AdditivePhylogeny' },
+    { id: 'ba7d', title: 'Implement UPGMA' },
+    { id: 'ba7e', title: 'Implement the Neighbor Joining Algorithm' },
+    { id: 'ba7f', title: 'Implement SmallParsimony' },
+  ],
+  quiz: [
+    { id: 'q1', type: 'mcq', q: 'In UPGMA, two clusters merged at distance D get a node of age…', options: ['D', 'D/2', '2D', 'average of their ages'], answer: 1, explain: 'Each child is D/2 from the parent (molecular clock).', exam: true },
+    { id: 'q2', type: 'mcq', q: 'An ultrametric tree is one where…', options: ['all edges have equal length', 'every root-to-leaf distance is equal', 'the tree is unrooted', 'the matrix is non-additive'], answer: 1, explain: 'All leaves are equidistant from the root (age 0 today).', exam: true },
+    { id: 'q3', type: 'tf', q: 'The closest pair of leaves in a distance matrix is always a pair of neighbors in the tree.', answer: false, explain: 'A long limb can make a neighbor look far; NJ’s D* fixes this.' },
+    { id: 'q4', type: 'num', q: 'D = [[0,13,21,22],[13,0,12,13],[21,12,0,13],[22,13,13,0]] (leaves i,j,k,l). LimbLength(i)?', answer: 11, explain: 'min over (j,k) etc. of (D_ij + D_ik − D_jk)/2 = (13 + 21 − 12)/2 = 11.' },
+    { id: 'q5', type: 'mcq', q: 'Which method does NOT assume a molecular clock?', options: ['UPGMA', 'Neighbor joining', 'Both', 'Neither'], answer: 1, explain: 'NJ handles unequal rates; UPGMA assumes a clock.' },
+    { id: 'q6', type: 'tf', q: 'Every distance matrix has a tree that fits it exactly.', answer: false, explain: 'Only additive matrices do (four-point condition).' },
+    { id: 'q7', type: 'mcq', q: 'Small parsimony minimizes…', options: ['the number of leaves', 'total number of character changes along the tree', 'tree height', 'pairwise distances'], answer: 1, explain: 'Assign ancestral states with the fewest mutations.' },
+    { id: 'q8', type: 'mcq', q: 'Why do RNA viruses evolve quickly?', options: ['They have no genes', 'RNA replication is more error-prone', 'They lack proteins', 'They are double-stranded'], answer: 1, explain: 'High mutation rates → many differences between strains.' },
+    { id: 'q9', type: 'num', q: 'UPGMA (Final Q2): A,B at distance 4; C,D at 4; all others 6. Height of the root?', answer: 3, explain: 'D(AB,CD) = 6 → age 3.', exam: true },
+    { id: 'q10', type: 'mcq', q: 'In UPGMA, D(C_new, C) is…', options: ['minimum distance', 'maximum distance', 'size-weighted average distance', 'sum of distances'], answer: 2, explain: 'Average over all pairs, so weighted by cluster sizes.' },
+  ],
+  flashcards: [
+    { id: 'f1', front: 'Distance matrix properties', back: 'Symmetric, non-negative, triangle inequality D_ik ≤ D_ij + D_jk.' },
+    { id: 'f2', front: 'Additive matrix', back: 'There exists a weighted tree whose leaf-to-leaf path lengths equal D (four-point condition).' },
+    { id: 'f3', front: 'Limb length theorem', back: 'LimbLength(j) = min over i,k of (D_ij + D_jk − D_ik)/2.' },
+    { id: 'f4', front: 'UPGMA', back: 'Merge closest clusters (average distance), node age = D/2; produces an ultrametric rooted tree.' },
+    { id: 'f5', front: 'Ultrametric tree', back: 'All root-to-leaf paths equal: the molecular clock assumption.' },
+    { id: 'f6', front: 'Neighbor-joining D*', back: 'D*_ij = (n−2)D_ij − Total(i) − Total(j); the min is a neighbor pair (for additive D).' },
+    { id: 'f7', front: 'NJ limb lengths', back: 'Δ = (Total(i) − Total(j))/(n−2); limb(i) = (D_ij + Δ)/2, limb(j) = (D_ij − Δ)/2.' },
+    { id: 'f8', front: 'Fitch algorithm', back: 'Bottom-up: intersection if non-empty else union (+1 change); top-down: keep the parent state if possible.' },
+    { id: 'f9', front: 'Rooted vs unrooted', back: 'Rooted encodes time from a common ancestor; unrooted only encodes relationships (root with an outgroup).' },
+  ],
+  mindmap: {
+    label: 'Phylogeny',
+    children: [
+      { label: 'Motivation', children: [{ label: 'SARS / HIV / SARS-CoV-2' }, { label: 'RNA virus mutation' }] },
+      { label: 'Trees', children: [{ label: 'leaves, limbs, internal nodes' }, { label: 'rooted vs unrooted' }] },
+      { label: 'Distance-based', children: [{ label: 'additive, four-point' }, { label: 'limb length, AdditivePhylogeny' }, { label: 'UPGMA (clock)' }, { label: 'Neighbor joining' }] },
+      { label: 'Character-based', children: [{ label: 'small parsimony (Fitch/Sankoff)' }, { label: 'large parsimony (NP-hard)' }, { label: 'ML / Bayesian' }] },
+    ],
+  },
+  practice: [
+    {
+      id: 'p1',
+      title: 'UPGMA step by step',
+      source: 'Final exam Q2(a), 8 marks',
+      exam: 'final',
+      marks: 8,
+      prompt: 'Distance matrix A–B 4, A–C 6, A–D 6, B–C 6, B–D 6, C–D 4. (i) Build the UPGMA tree step by step, showing merges, updated distances and heights. (ii) Draw the rooted tree with branch lengths.',
+      solution:
+        '**Step 1.** Smallest distance 4 (A,B), tied with (C,D). Merge **AB** at height 4/2 = **2**. Update: D(AB,C) = (6+6)/2 = 6, D(AB,D) = 6.\n\n| | AB | C | D |\n|---|---|---|---|\n| AB | 0 | 6 | 6 |\n| C | 6 | 0 | 4 |\n| D | 6 | 4 | 0 |\n\n**Step 2.** Smallest 4 (C,D). Merge **CD** at height **2**. D(AB,CD) = (2·2·6)/(2·2) = 6.\n\n**Step 3.** Merge **AB** with **CD** at height 6/2 = **3** (root).\n\n**Tree:** root (age 3) → AB node (age 2): branch 1; → CD node (age 2): branch 1. AB node → A: 2, → B: 2. CD node → C: 2, → D: 2.\nNewick `((A:2,B:2):1,(C:2,D:2):1);`. All leaves are at distance 3 from the root, so the tree is ultrametric.\n\n{{widget:upgma preset="final"}}',
+    },
+    {
+      id: 'p2',
+      title: 'Ultrametric trees',
+      source: 'Final exam Q2(b), 2 marks',
+      exam: 'final',
+      marks: 2,
+      prompt: 'What is an ultrametric tree? How is it relevant to evolutionary understanding?',
+      solution: 'A rooted tree in which the distance from the root to **every leaf is equal**; internal nodes have ages and all present-day species have age 0. It formalizes the **molecular clock** (constant mutation rate across lineages), so branch lengths translate into **time** and we can estimate when species diverged. Real lineages often violate the clock, so UPGMA (which forces ultrametricity) can give wrong trees; NJ/ML or relaxed clocks are used then.',
+    },
+  ],
+};
+export default m;

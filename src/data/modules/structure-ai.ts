@@ -1,0 +1,75 @@
+import type { Module } from '../types';
+import content from '../content/structure-ai.md?raw';
+
+const m: Module = {
+  id: 'structure-ai',
+  track: 'frontiers',
+  code: 'X1',
+  title: 'AlphaFold & Protein AI',
+  subtitle: 'Folding problem, AlphaFold 2/3, pLDDT, ESMFold, protein design, the 2024 Nobel Prize',
+  icon: '🧊',
+  color: '#9c36b5',
+  hours: 3,
+  prereqs: ['intro', 'alignment', 'neural'],
+  content,
+  concepts: ['folding-problem', 'coevolution', 'alphafold2', 'plddt', 'alphafold3', 'esmfold', 'protein-design', 'alphamissense'],
+  videos: [
+    { id: 'gg7WjuFs8F4', title: 'AlphaFold: The making of a scientific breakthrough', channel: 'Google DeepMind', why: 'The CASP14 story.' },
+    { id: 'P_fHJIYENdI', title: 'AlphaFold - The Most Useful Thing AI Has Ever Done', channel: 'Veritasium', why: 'Deep, accessible 25-minute explanation.' },
+    { id: '7q8Uw3rmXyE', title: 'What Is AlphaFold? | NEJM', channel: 'NEJM Group', why: 'Medical perspective.' },
+    { id: '_9oTqDWGaFc', title: 'ESM-2 Protein Language Model Explained – Architecture & Training', channel: 'ProteinVision', why: 'How protein language models learn.' },
+    { id: 'PJLT0cAPNfs', title: '5 challenges we could solve by designing new proteins', channel: 'David Baker (TED)', why: 'Protein design from the Nobel laureate.' },
+    { id: 'wIHwHDt2NoI', title: 'RFDiffusion: Accurate protein design using structure prediction and diffusion generative models', channel: 'ML for protein engineering seminar series', why: 'Technical talk on RFdiffusion.' },
+  ],
+  articles: [
+    { title: 'Jumper et al. (2021) Highly accurate protein structure prediction with AlphaFold', url: 'https://www.nature.com/articles/s41586-021-03819-2', source: 'Nature', why: 'AlphaFold 2 paper.' },
+    { title: 'Abramson et al. (2024) Accurate structure prediction of biomolecular interactions with AlphaFold 3', url: 'https://www.nature.com/articles/s41586-024-07487-w', source: 'Nature', why: 'AlphaFold 3 paper.' },
+    { title: 'AlphaFold Protein Structure Database', url: 'https://alphafold.ebi.ac.uk/', source: 'EMBL-EBI', why: '200M+ predicted structures.' },
+    { title: 'The Nobel Prize in Chemistry 2024: press release', url: 'https://www.nobelprize.org/prizes/chemistry/2024/press-release/', source: 'NobelPrize.org', why: 'Official citation.' },
+    { title: 'Lin et al. (2023) Evolutionary-scale prediction of atomic-level protein structure with a language model', url: 'https://www.science.org/doi/10.1126/science.ade2574', source: 'Science', why: 'ESM-2 / ESMFold.' },
+    { title: 'Watson et al. (2023) De novo design of protein structure and function with RFdiffusion', url: 'https://www.nature.com/articles/s41586-023-06415-8', source: 'Nature', why: 'Generative protein design.' },
+    { title: 'Cheng et al. (2023) Accurate proteome-wide missense variant effect prediction with AlphaMissense', url: 'https://www.science.org/doi/10.1126/science.adg7492', source: 'Science', why: '71 M variants scored.' },
+    { title: 'Hayes et al. (2025) Simulating 500 million years of evolution with a language model', url: 'https://www.science.org/doi/10.1126/science.ads0018', source: 'Science', why: 'ESM3 and esmGFP.' },
+  ],
+  quiz: [
+    { id: 'q1', type: 'mcq', q: 'What does pLDDT measure?', options: ['Sequence identity', 'AlphaFold’s per-residue confidence (0–100)', 'Binding energy', 'Number of homologs'], answer: 1, explain: 'Predicted local distance difference test.' },
+    { id: 'q2', type: 'mcq', q: 'Which biological signal in MSAs reveals residue contacts?', options: ['GC skew', 'Co-evolution (correlated mutations)', 'Codon bias', 'Phred quality'], answer: 1, explain: 'Contacting residues mutate together.' },
+    { id: 'q3', type: 'mcq', q: 'What can AlphaFold 3 model that AlphaFold 2 (monomer) could not?', options: ['Single protein chains', 'Complexes with DNA, RNA, ligands and ions', 'Protein sequences', 'Phylogenies'], answer: 1, explain: 'AF3 predicts joint structures of biomolecular complexes.' },
+    { id: 'q4', type: 'mcq', q: 'Who shared the 2024 Nobel Prize in Chemistry?', options: ['Doudna & Charpentier', 'Baker; Hassabis & Jumper', 'Venter & Collins', 'Hinton & Hopfield'], answer: 1, explain: 'Baker (design), Hassabis & Jumper (prediction). Hinton & Hopfield won Physics 2024.' },
+    { id: 'q5', type: 'tf', q: 'Very low pLDDT regions often correspond to intrinsically disordered regions.', answer: true, explain: 'Low confidence frequently reflects genuine disorder.' },
+    { id: 'q6', type: 'mcq', q: 'ESMFold differs from AlphaFold 2 mainly because it…', options: ['uses cryo-EM data', 'predicts from a single sequence using a protein language model (no MSA)', 'only predicts RNA', 'uses HMMs'], answer: 1, explain: 'ESM-2 embeddings replace the MSA.' },
+    { id: 'q7', type: 'num', q: 'How many possible human missense variants did AlphaMissense score (millions)?', answer: 71, explain: '71 million; 89% classified.' },
+    { id: 'q8', type: 'mcq', q: 'RFdiffusion is used to…', options: ['assemble genomes', 'generate new protein backbones (design)', 'align reads', 'cluster cells'], answer: 1, explain: 'Diffusion-based de novo protein design.' },
+  ],
+  flashcards: [
+    { id: 'f1', front: 'CASP', back: 'Biennial blind protein structure prediction competition (since 1994); scored by GDT.' },
+    { id: 'f2', front: 'AlphaFold 2 core modules', back: 'MSA + templates → Evoformer (MSA & pair representations, triangle updates) → structure module (IPA) → recycling; outputs pLDDT & PAE.' },
+    { id: 'f3', front: 'PAE', back: 'Predicted aligned error between residue pairs: confidence in relative domain/chain placement.' },
+    { id: 'f4', front: 'AlphaFold 3', back: 'Pairformer + diffusion module; complexes with proteins, DNA, RNA, ligands, ions (Nature 2024).' },
+    { id: 'f5', front: 'AlphaFold DB', back: 'EMBL-EBI + DeepMind; >200 million predicted structures (2022 expansion).' },
+    { id: 'f6', front: 'ESMFold', back: 'Single-sequence structure prediction from the ESM-2 protein language model (Science 2023).' },
+    { id: 'f7', front: 'Design loop', back: 'RFdiffusion backbone → ProteinMPNN sequence → AlphaFold validation → experiment.' },
+    { id: 'f8', front: 'AlphaMissense', back: 'AlphaFold-derived model scoring 71 M missense variants for pathogenicity (Science 2023).' },
+  ],
+  mindmap: {
+    label: 'Protein structure AI',
+    children: [
+      { label: 'Problem', children: [{ label: 'sequence → structure' }, { label: 'CASP / GDT' }, { label: 'co-evolution in MSAs' }] },
+      { label: 'AlphaFold 2', children: [{ label: 'Evoformer' }, { label: 'structure module' }, { label: 'pLDDT, PAE' }, { label: 'AF DB 200M+' }] },
+      { label: 'Next generation', children: [{ label: 'AlphaFold 3 (complexes, diffusion)' }, { label: 'RoseTTAFold' }, { label: 'ESMFold, ESM3' }] },
+      { label: 'Design', children: [{ label: 'RFdiffusion' }, { label: 'ProteinMPNN' }, { label: 'Nobel 2024' }] },
+      { label: 'Variants', children: [{ label: 'AlphaMissense' }] },
+      { label: 'Limits', children: [{ label: 'static structures' }, { label: 'disorder' }, { label: 'mutation effects' }] },
+    ],
+  },
+  practice: [
+    {
+      id: 'p1',
+      title: 'Interpret an AlphaFold model',
+      exam: 'both',
+      prompt: 'Open p53 (P04637) in the viewer. Which regions are confidently predicted, which are not, and what might that mean biologically?',
+      solution: 'The central DNA-binding domain (and the short tetramerization region) shows high pLDDT (blue), so it is a well-folded domain. The N-terminal transactivation region and the C-terminal regulatory tail are low/very low pLDDT (yellow/orange). These are **intrinsically disordered** regions that mediate many interactions and are heavily modified post-translationally. Don\'t interpret their exact coordinates. Check PAE before trusting the relative placement of domains.\n\n{{widget:alphafold}}',
+    },
+  ],
+};
+export default m;

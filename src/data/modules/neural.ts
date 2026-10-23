@@ -1,0 +1,83 @@
+import type { Module } from '../types';
+import content from '../content/neural.md?raw';
+
+const m: Module = {
+  id: 'neural',
+  track: 'cse443',
+  code: 'L14',
+  title: 'Neural Networks & Representation Learning',
+  subtitle: 'Gradient descent, logistic regression, deep nets, autoencoders, VAEs, dna2vec',
+  icon: '🧠',
+  color: '#5c7cfa',
+  exam: 'final',
+  hours: 4,
+  prereqs: ['ml', 'math'],
+  content,
+  concepts: ['linear-regression', 'gradient-descent', 'logistic', 'sigmoid', 'neural-net', 'backprop', 'autoencoder', 'vae', 'embeddings'],
+  videos: [
+    { id: 'sDv4f4s2SB8', title: 'Gradient Descent, Step-by-Step', channel: 'StatQuest with Josh Starmer', why: 'Exactly the derivation on the slides.' },
+    { id: 'aircAruvnKk', title: 'But what is a neural network?', channel: '3Blue1Brown', why: 'Best visual intro to layers and weights.' },
+    { id: 'IHZwWFHWa-w', title: 'Gradient descent, how neural networks learn', channel: '3Blue1Brown', why: 'Cost landscapes and learning.' },
+    { id: 'yIYKR4sgzI8', title: 'StatQuest: Logistic Regression', channel: 'StatQuest with Josh Starmer', why: 'Sigmoid and probabilities.' },
+    { id: 'qiUEgSCyY5o', title: 'What are Autoencoders?', channel: 'IBM Technology', why: 'Encoder/decoder in 5 minutes.' },
+    { id: '9zKuYvjFFS8', title: 'Variational Autoencoders', channel: 'Arxiv Insights', why: 'Reparameterization and KL term.' },
+  ],
+  articles: [
+    { title: 'Qiu, Zheng & Gevaert (2020) Genomic data imputation with variational auto-encoders', url: 'https://doi.org/10.1093/gigascience/giaa082', source: 'GigaScience', why: 'Course paper (variational.pdf).' },
+    { title: 'Ng (2017) dna2vec: Consistent vector representations of variable-length k-mers', url: 'https://arxiv.org/abs/1701.06279', source: 'arXiv', why: 'Course paper (dn2vec.pdf).' },
+    { title: 'Eraslan et al. (2019) Deep learning: new computational modelling techniques for genomics', url: 'https://www.nature.com/articles/s41576-019-0122-6', source: 'Nature Reviews Genetics', why: 'Survey of CNN/RNN/autoencoder applications.' },
+  ],
+  quiz: [
+    { id: 'q1', type: 'mcq', q: 'In gradient descent, a too-large learning rate typically causes…', options: ['slow convergence', 'divergence / oscillation', 'exact solution in one step always', 'underflow'], answer: 1, explain: 'Steps overshoot the minimum.' },
+    { id: 'q2', type: 'mcq', q: '∂e/∂w_j for e = ½Σ(ŷ − y)² with ŷ linear is…', options: ['Σ(ŷ − y)', 'Σ(ŷ − y)·x_j', 'Σ(ŷ − y)²', 'x_j'], answer: 1, explain: 'Chain rule: error × feature.' },
+    { id: 'q3', type: 'mcq', q: 'Why replace the step function with a sigmoid?', options: ['It is faster', 'It is continuous and differentiable', 'It has no parameters', 'It is linear'], answer: 1, explain: 'Gradients exist; σ′ = σ(1 − σ).' },
+    { id: 'q4', type: 'num', q: 'σ(0) = ?', answer: 0.5, tol: 0.0001, explain: '1/(1 + e⁰) = 0.5.' },
+    { id: 'q5', type: 'mcq', q: 'An undercomplete autoencoder…', options: ['has a hidden code larger than the input', 'has a bottleneck smaller than the input', 'needs labels', 'is a decision tree'], answer: 1, explain: 'The bottleneck forces compression.' },
+    { id: 'q6', type: 'mcq', q: 'A VAE loss combines reconstruction error with…', options: ['L1 penalty', 'KL divergence to a standard Gaussian prior', 'cross-validation', 'hinge loss'], answer: 1, explain: 'KL regularizes the latent distribution.' },
+    { id: 'q7', type: 'mcq', q: 'A denoising autoencoder is trained to…', options: ['add noise', 'reconstruct clean input from corrupted input', 'classify noise', 'remove the decoder'], answer: 1, explain: 'Learn robust features.' },
+    { id: 'q8', type: 'mcq', q: 'Which is NOT a standard way to handle class imbalance in NNs?', options: ['class-weighted loss', 'oversampling / synthetic minority samples', 'reporting only accuracy', 'focal loss'], answer: 2, explain: 'Accuracy hides minority-class failure.', exam: true },
+    { id: 'q9', type: 'mcq', q: 'dna2vec showed that cosine similarity of k-mer embeddings correlates with…', options: ['GC content only', 'Needleman–Wunsch similarity scores', 'Phred quality', 'gene expression'], answer: 1, explain: 'From the paper’s abstract.' },
+    { id: 'q10', type: 'tf', q: 'A VAE imputed missing genomic values comparably or better than KNN/SVD methods in most tests in Qiu et al.', answer: true, explain: 'And was faster at evaluation time.' },
+  ],
+  flashcards: [
+    { id: 'f1', front: 'Gradient descent update', back: 'w ← w − α·∂e/∂w' },
+    { id: 'f2', front: 'Learning rate α', back: 'Too small: slow. Too large: overshoot/diverge.' },
+    { id: 'f3', front: 'Sigmoid derivative', back: 'σ′(z) = σ(z)(1 − σ(z))' },
+    { id: 'f4', front: 'Backpropagation', back: 'Chain rule applied layer by layer to get all weight gradients efficiently.' },
+    { id: 'f5', front: 'Wide vs deep', back: 'Deep nets learn hierarchical features with far fewer units than one wide layer.' },
+    { id: 'f6', front: 'Undercomplete AE', back: 'Bottleneck code smaller than input; minimizes reconstruction error (non-linear PCA).' },
+    { id: 'f7', front: 'VAE', back: 'Encoder outputs mean/variance; loss = reconstruction + KL(q(z|x)‖N(0,I)); can sample new data.' },
+    { id: 'f8', front: 'Imbalance in NNs', back: 'Class weights / focal loss, balanced batches, VAE/GAN synthetic samples, autoencoder anomaly detection, threshold tuning, MCC/AUPR.' },
+    { id: 'f9', front: 'dna2vec', back: 'word2vec-style embeddings for variable-length k-mers; vector addition ≈ concatenation.' },
+  ],
+  mindmap: {
+    label: 'Neural networks',
+    children: [
+      { label: 'Regression', children: [{ label: 'linear model' }, { label: 'squared error' }, { label: 'gradient descent, α' }] },
+      { label: 'Classification', children: [{ label: 'step → sigmoid' }, { label: 'logistic regression' }] },
+      { label: 'Networks', children: [{ label: 'layers' }, { label: 'backprop' }, { label: 'wide vs deep' }, { label: 'CNN/RNN/Transformer' }] },
+      { label: 'Autoencoders', children: [{ label: 'undercomplete' }, { label: 'denoising' }, { label: 'VAE (KL)' }] },
+      { label: 'Papers', children: [{ label: 'VAE imputation' }, { label: 'dna2vec' }] },
+      { label: 'Imbalance', children: [{ label: 'class weights' }, { label: 'synthetic samples' }, { label: 'metrics' }] },
+    ],
+  },
+  practice: [
+    {
+      id: 'p1',
+      title: 'Imbalanced cancer prediction',
+      source: 'Final exam Q3(b), 3 marks',
+      exam: 'final',
+      marks: 3,
+      prompt: 'Predicting cancer from gene expression, you have 1000 cancer samples but only 100 normal samples. Explain how neural networks can be used to tackle this imbalance.',
+      solution: '(1) **Cost-sensitive training**: class-weighted cross-entropy (normal weight ≈ 10× cancer) or **focal loss**, so the network cannot ignore the minority class. (2) **Balanced mini-batches** via oversampling normals/undersampling cancers, plus augmentation (noise, dropout of genes). (3) **Generative augmentation**: train a **VAE/GAN** on normal profiles and sample synthetic normals. (4) **Autoencoder anomaly detection**: train on the majority class; high reconstruction error flags the other class. (5) Tune the decision threshold and evaluate with **MCC/F1/AUPR/balanced accuracy**, not accuracy (90.9% for the trivial all-cancer model).\n\n{{widget:logreg}}',
+    },
+    {
+      id: 'p2',
+      title: 'One gradient-descent step',
+      exam: 'final',
+      prompt: 'Data (x, y): (1, 2), (2, 3). Start w₀ = 0, w₁ = 0, α = 0.1, e = ½Σ(ŷ − y)². Compute one update.',
+      solution: 'Predictions ŷ = 0, so errors (ŷ − y) = −2, −3.\n∂e/∂w₀ = −2 + −3 = **−5**; ∂e/∂w₁ = (−2)(1) + (−3)(2) = **−8**.\nw₀ ← 0 − 0.1·(−5) = **0.5**; w₁ ← 0 − 0.1·(−8) = **0.8**.\nNew error: ŷ = 1.3, 2.1 → e = ½(0.7² + 0.9²) = 0.65 (down from 6.5).',
+    },
+  ],
+};
+export default m;

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+.vercel
+# Course materials are copyrighted by the instructor/university: keep them local only.
+CSE443_Bioinformatics/
+Biotechnology/

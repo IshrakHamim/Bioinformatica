@@ -1,0 +1,81 @@
+import type { Module } from '../types';
+import content from '../content/intro.md?raw';
+
+const m: Module = {
+  id: 'intro',
+  track: 'cse443',
+  code: 'L01',
+  title: 'Introduction & Molecular Biology',
+  subtitle: 'DNA, RNA, proteins, the genetic code and gene regulation, for computer scientists',
+  icon: '🧬',
+  color: '#2f9e44',
+  exam: 'mid',
+  hours: 3,
+  prereqs: [],
+  content,
+  concepts: ['dna', 'central-dogma', 'genetic-code', 'replication', 'gene-regulation', 'protein-structure', 'revcomp'],
+  videos: [
+    { id: 'gG7uCskUOrA', title: 'From DNA to protein - 3D', channel: 'yourgenome', why: 'Transcription and translation animated in 3 minutes.' },
+    { id: 'TNKWgcFPHqw', title: 'DNA replication - 3D', channel: 'yourgenome', why: 'Leading/lagging strands and Okazaki fragments.' },
+    { id: 'hok2hyED9go', title: 'Protein Structure and Folding', channel: 'Amoeba Sisters', why: 'Primary → quaternary structure, friendly pace.' },
+    { id: 'hpb-mH-yjLc', title: 'ADS1: Why study DNA sequencing and computational genomics?', channel: 'Ben Langmead', why: 'Motivation from a computational genomics professor.' },
+  ],
+  articles: [
+    { title: 'MIT 6.047 Computational Biology (Kellis): lecture notes & videos', url: 'https://ocw.mit.edu/courses/6-047-computational-biology-fall-2015/', source: 'MIT OpenCourseWare', why: 'The biology primer on the slides follows these notes closely.' },
+    { title: 'Bioinformatics Algorithms: An Active Learning Approach (book site)', url: 'https://www.bioinformaticsalgorithms.org/', source: 'Compeau & Pevzner', why: 'Course textbook B1; free chapters, lecture videos and FAQs.' },
+    { title: 'Rosalind: Bioinformatics Textbook Track', url: 'https://rosalind.info/problems/list-view/?location=bioinformatics-textbook-track', source: 'Rosalind', why: 'Auto-graded problems for every algorithm in the course.' },
+    { title: 'Human Genome Project fact sheet', url: 'https://www.genome.gov/human-genome-project', source: 'NHGRI', why: 'History and numbers of the HGP.' },
+  ],
+  rosalind: [
+    { id: 'ba1c', title: 'Find the Reverse Complement of a String' },
+  ],
+  quiz: [
+    { id: 'q1', type: 'mcq', q: 'Which pair are both purines (two rings)?', options: ['A and T', 'A and G', 'C and T', 'G and C'], answer: 1, explain: 'Adenine and guanine are purines; cytosine and thymine (and uracil) are pyrimidines.' },
+    { id: 'q2', type: 'mcq', q: 'Why is an A–T rich region easier to unwind than a G–C rich one?', options: ['A–T pairs share 2 hydrogen bonds vs 3 for G–C', 'A and T are smaller molecules', 'A–T pairs are covalently bonded', 'G–C pairs only occur in RNA'], answer: 0, explain: 'A–T: 2 H-bonds, G–C: 3. Fewer bonds make strand separation easier, which is one reason origins of replication tend to be AT-rich.' },
+    { id: 'q3', type: 'num', q: 'How many codons code for amino acids (i.e., are not stop codons)?', answer: 61, explain: '4³ = 64 codons, minus 3 stops (UAA, UAG, UGA) = 61 sense codons.' },
+    { id: 'q4', type: 'mcq', q: 'What is the reverse complement of 5′-ATGATCAAG-3′?', options: ['TACTAGTTC', 'GAACTAGTA', 'CTTGATCAT', 'ATGATCAAG'], answer: 2, explain: 'Complement each base (TACTAGTTC) and reverse: CTTGATCAT, written 5′→3′.' },
+    { id: 'q5', type: 'tf', q: 'DNA polymerase synthesizes new DNA in the 5′→3′ direction only.', answer: true, explain: 'It adds nucleotides to the 3′ end, so new strands grow 5′→3′. That is why the lagging strand is made in Okazaki fragments.' },
+    { id: 'q6', type: 'mcq', q: 'Splicing removes…', options: ['exons', 'introns', 'the 5′ cap', 'codons'], answer: 1, explain: 'Introns are removed; exons are joined into mature mRNA.' },
+    { id: 'q7', type: 'num', q: 'How many reading frames does a double-stranded DNA sequence have?', answer: 6, explain: '3 frames on each of the 2 strands.' },
+    { id: 'q8', type: 'mcq', q: 'Which RNA carries an anticodon?', options: ['mRNA', 'rRNA', 'tRNA', 'snRNA'], answer: 2, explain: 'tRNA has a 3-base anticodon complementary to an mRNA codon and carries the matching amino acid.' },
+    { id: 'q9', type: 'tf', q: 'Two unrelated humans are about 99.9% identical in DNA sequence.', answer: true, explain: 'The ~0.1% difference is still millions of positions, and it underlies trait and disease-risk variation.' },
+    { id: 'q10', type: 'mcq', q: 'Transcription factors bind to…', options: ['codons in mRNA', 'regulatory motifs in promoters/enhancers', 'the ribosome', 'introns only'], answer: 1, explain: 'TFs recognise short DNA motifs (TF binding sites) near the genes they regulate.' },
+    { id: 'q11', type: 'tf', q: 'The genome alone determines every trait of an organism.', answer: false, explain: 'Epigenetic, environmental and stochastic factors also shape phenotype.' },
+    { id: 'q12', type: 'mcq', q: 'Which level of protein structure is an α-helix?', options: ['Primary', 'Secondary', 'Tertiary', 'Quaternary'], answer: 1, explain: 'Helices and sheets are local secondary structure held by backbone H-bonds.' },
+  ],
+  flashcards: [
+    { id: 'f1', front: 'Central dogma', back: 'DNA → (transcription) → RNA → (translation) → protein' },
+    { id: 'f2', front: 'Purines vs pyrimidines', back: 'Purines (2 rings): A, G. Pyrimidines (1 ring): C, T, U.' },
+    { id: 'f3', front: 'H-bonds in A–T vs G–C', back: 'A–T: 2, G–C: 3 (G–C is more stable)' },
+    { id: 'f4', front: 'Reverse complement', back: 'Complement every base (A↔T, C↔G) then reverse; gives the other strand read 5′→3′.' },
+    { id: 'f5', front: 'Leading vs lagging strand', back: 'Leading: synthesized continuously toward the fork. Lagging: built in Okazaki fragments away from the fork, joined by DNA ligase.' },
+    { id: 'f6', front: 'Exon vs intron', back: 'Exons remain in mature mRNA; introns are spliced out.' },
+    { id: 'f7', front: 'Start and stop codons', back: 'Start: AUG (Met). Stop: UAA, UAG, UGA.' },
+    { id: 'f8', front: 'mRNA processing in eukaryotes', back: '5′ cap, splicing, 3′ poly(A) tail (post-transcriptional).' },
+    { id: 'f9', front: 'Four levels of protein structure', back: 'Primary (sequence), secondary (helix/sheet), tertiary (3D fold), quaternary (multi-chain complex).' },
+    { id: 'f10', front: 'Transcription factor', back: 'Protein that binds a regulatory motif (promoter/enhancer) to activate or repress genes.' },
+    { id: 'f11', front: 'Genotype vs phenotype', back: 'Genotype: the DNA sequence. Phenotype: observable traits (shaped by genotype + environment + epigenetics + chance).' },
+    { id: 'f12', front: 'Upstream / downstream', back: 'Upstream = 5′ side of a gene (promoters); downstream = 3′ side.' },
+  ],
+  mindmap: {
+    label: 'Molecular biology',
+    children: [
+      { label: 'DNA', children: [{ label: 'A,C,G,T; purine/pyrimidine' }, { label: 'complementary, antiparallel' }, { label: '5′→3′ convention' }, { label: 'reverse complement' }] },
+      { label: 'Replication', children: [{ label: 'oriC → terC' }, { label: 'leading / lagging' }, { label: 'Okazaki fragments, ligase' }] },
+      { label: 'Transcription', children: [{ label: 'promoter, TSS' }, { label: 'RNA: U, ribose, single strand' }, { label: 'splicing, cap, poly(A)' }] },
+      { label: 'Translation', children: [{ label: '64 codons, 20 aa' }, { label: 'AUG start; 3 stops' }, { label: '6 reading frames' }] },
+      { label: 'Proteins', children: [{ label: '1°→4° structure' }, { label: 'sequence → structure → function' }] },
+      { label: 'Regulation', children: [{ label: 'TFs & motifs' }, { label: 'co-regulated genes' }, { label: 'feedback networks' }] },
+    ],
+  },
+  practice: [
+    {
+      id: 'p1',
+      title: 'Six-frame translation',
+      exam: 'mid',
+      prompt: 'Give the reverse complement of `ATGGCCTAA` and translate the forward strand in frame +1.',
+      solution: 'Reverse complement: complement → `TACCGGATT`, reverse → **`TTAGGCCAT`**.\n\nFrame +1 codons: AUG · GCC · UAA → **M A stop**, so the peptide is `MA`.',
+    },
+  ],
+};
+export default m;

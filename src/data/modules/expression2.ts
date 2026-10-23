@@ -1,0 +1,82 @@
+import type { Module } from '../types';
+import content from '../content/expression2.md?raw';
+
+const m: Module = {
+  id: 'expression2',
+  track: 'cse443',
+  code: 'L08',
+  title: 'Gene Expression Analysis II: Dimensionality Reduction',
+  subtitle: 'PCA, eigenvectors, MDS, SNE, KL divergence, the crowding problem, t-SNE',
+  icon: '🌌',
+  color: '#7048e8',
+  exam: 'mid',
+  hours: 4,
+  prereqs: ['expression1', 'math'],
+  content,
+  concepts: ['dim-reduction', 'pca', 'eigen', 'mds', 'sne', 'kl', 'crowding', 'tsne', 'umap'],
+  videos: [
+    { id: 'HMOI_lkzW08', title: 'StatQuest: PCA main ideas in only 5 minutes!!!', channel: 'StatQuest with Josh Starmer', why: 'Fast intuition.' },
+    { id: 'FgakZw6K1QQ', title: 'StatQuest: Principal Component Analysis (PCA), Step-by-Step', channel: 'StatQuest with Josh Starmer', why: 'Full derivation with gene-expression examples.' },
+    { id: 'PFDu9oVAE-g', title: 'Eigenvectors and eigenvalues', channel: '3Blue1Brown', why: 'Geometric meaning of Av = λv.' },
+    { id: 'NEaUSP4YerM', title: 'StatQuest: t-SNE, Clearly Explained', channel: 'StatQuest with Josh Starmer', why: 'The video behind the course t-SNE deck.' },
+    { id: 'SxGYPqCgJWM', title: 'Intuitively Understanding the KL Divergence', channel: 'Adian Liusie', why: 'Why KL is asymmetric.' },
+  ],
+  articles: [
+    { title: 'van der Maaten & Hinton (2008) Visualizing Data using t-SNE', url: 'https://www.jmlr.org/papers/v9/vandermaaten08a.html', source: 'JMLR', why: 'Original t-SNE paper; very readable.' },
+    { title: 'Wattenberg, Viégas & Johnson (2016) How to Use t-SNE Effectively', url: 'https://distill.pub/2016/misread-tsne/', source: 'Distill', why: 'Interactive pitfalls of t-SNE plots.' },
+    { title: 'Ringnér (2008) What is principal component analysis?', url: 'https://www.nature.com/articles/nbt0308-303', source: 'Nature Biotechnology', why: 'Two-page PCA primer for biologists.' },
+    { title: 'McInnes, Healy & Melville (2018) UMAP', url: 'https://arxiv.org/abs/1802.03426', source: 'arXiv', why: 'The method used in most single-cell papers today.' },
+  ],
+  quiz: [
+    { id: 'q1', type: 'mcq', q: 'PC1 is the eigenvector of the covariance matrix with…', options: ['the smallest eigenvalue', 'the largest eigenvalue', 'eigenvalue 1', 'zero eigenvalue'], answer: 1, explain: 'Largest eigenvalue = direction of maximum variance.' },
+    { id: 'q2', type: 'tf', q: 'Maximizing projected variance and minimizing reconstruction error give the same PCA solution.', answer: true, explain: 'For centered data, variance captured + reconstruction error = total variance (constant).' },
+    { id: 'q3', type: 'tf', q: 'KL(P‖Q) = KL(Q‖P) for all distributions.', answer: false, explain: 'KL is asymmetric; this asymmetry is central to SNE.', exam: true },
+    { id: 'q4', type: 'mcq', q: 'In SNE, which mistake is penalized most?', options: ['Far points placed close', 'Close points placed far apart', 'Both equally', 'Neither'], answer: 1, explain: 'Large p with small q gives a large p·log(p/q).', exam: true },
+    { id: 'q5', type: 'mcq', q: 'What does t-SNE change to fix the crowding problem?', options: ['Uses Euclidean distance', 'Uses a heavy-tailed Student-t distribution in the low-D space', 'Uses PCA first', 'Uses hard neighborhoods'], answer: 1, explain: 'Heavy tails let moderately distant points be far apart in the map.' },
+    { id: 'q6', type: 'mcq', q: 'Perplexity in t-SNE roughly controls…', options: ['the number of output dimensions', 'the effective number of neighbors per point', 'the learning rate', 'the number of clusters'], answer: 1, explain: 'σᵢ is tuned so 2^{H(Pᵢ)} = perplexity.' },
+    { id: 'q7', type: 'tf', q: 'Distances between clusters in a t-SNE plot are reliable measures of similarity.', answer: false, explain: 'Global distances and cluster sizes are not preserved.' },
+    { id: 'q8', type: 'mcq', q: 'Which method is linear?', options: ['t-SNE', 'Isomap', 'PCA', 'LLE'], answer: 2, explain: 'PCA is a linear projection.' },
+    { id: 'q9', type: 'mcq', q: 'KL divergence equals zero when…', options: ['P and Q are equal', 'P is uniform', 'Q is uniform', 'always'], answer: 0, explain: 'KL ≥ 0 with equality iff P = Q.' },
+    { id: 'q10', type: 'mcq', q: 'SNE/t-SNE optimize the embedding with…', options: ['eigen-decomposition', 'gradient descent', 'dynamic programming', 'EM'], answer: 1, explain: 'Iteratively move points along the negative gradient of the KL cost.' },
+  ],
+  flashcards: [
+    { id: 'f1', front: 'Two views of PCA', back: 'Maximize variance of the projection = minimize squared reconstruction error.' },
+    { id: 'f2', front: 'Eigenvector', back: 'v with Av = λv: A only scales v. For a covariance matrix, eigenvectors are principal axes and eigenvalues are variances along them.' },
+    { id: 'f3', front: 'Variance explained by PC i', back: 'λᵢ / Σⱼ λⱼ' },
+    { id: 'f4', front: 'MDS objective', back: 'Place points so low-D distances match high-D distances (minimize stress).' },
+    { id: 'f5', front: 'p_{j|i} in SNE', back: 'Gaussian-kernel probability that i would pick j as its neighbor.' },
+    { id: 'f6', front: 'SNE cost', back: 'Σᵢ KL(Pᵢ‖Qᵢ) = Σᵢ Σⱼ p_{j|i} log(p_{j|i}/q_{j|i}), minimized by gradient descent.' },
+    { id: 'f7', front: 'KL asymmetry in SNE', back: 'Heavily penalizes neighbors placed far apart; lightly penalizes far points placed close → preserves local structure.' },
+    { id: 'f8', front: 'Crowding problem', back: 'Not enough room in 2-D for all moderately-near neighbors, so points crowd into the center.' },
+    { id: 'f9', front: 't-SNE fix', back: 'Student-t (1 d.o.f.) heavy-tailed q_ij in the map + symmetric p_ij.' },
+    { id: 'f10', front: 'Perplexity', back: 'Effective number of neighbors; chooses σᵢ per point by binary search.' },
+  ],
+  mindmap: {
+    label: 'Dimensionality reduction',
+    children: [
+      { label: 'Why', children: [{ label: 'visualize' }, { label: 'compress / denoise' }, { label: 'preprocess' }] },
+      { label: 'PCA', children: [{ label: 'max variance = min reconstruction' }, { label: 'covariance eigenvectors' }, { label: 'SVD in practice' }] },
+      { label: 'Distances', children: [{ label: 'MDS stress' }] },
+      { label: 'Neighborhoods', children: [{ label: 'p_{j|i}, q_{j|i}' }, { label: 'SNE: KL + gradient descent' }, { label: 'crowding' }, { label: 't-SNE: Student-t, perplexity' }, { label: 'UMAP' }] },
+    ],
+  },
+  practice: [
+    {
+      id: 'p1',
+      title: 'KL asymmetry and SNE',
+      source: 'Mid exam 4(b), 4 marks',
+      exam: 'mid',
+      marks: 4,
+      prompt: 'How does the asymmetric nature of KL-divergence contribute to the effectiveness of stochastic neighbor embedding?',
+      solution: 'SNE minimizes C = Σᵢ KL(Pᵢ‖Qᵢ) = Σ p_{j|i} log(p_{j|i}/q_{j|i}). Since each term is **weighted by p**:\n\n- **Large p, small q** (true neighbors mapped far apart) → large log ratio × large weight → **big cost**.\n- **Small p, large q** (non-neighbors mapped close) → tiny weight → **small cost**.\n\nSo gradient descent prioritizes keeping each point’s **local neighborhood** intact, which is ideal for revealing clusters (e.g., cell types), while it is lenient about global distances. Consequences: clear local clusters, but inter-cluster distances/sizes are unreliable, and Gaussian Q causes crowding, which t-SNE fixes with a heavy-tailed Student-t Q.\n\n{{widget:kl}}',
+    },
+    {
+      id: 'p2',
+      title: 'PCA of a 2×2 covariance',
+      exam: 'mid',
+      prompt: 'A dataset has covariance matrix [[3, 1.5], [1.5, 2]]. Find the eigenvalues and the fraction of variance explained by PC1.',
+      solution: 'Characteristic equation: λ² − (3+2)λ + (3·2 − 1.5²) = λ² − 5λ + 3.75 = 0, so λ = (5 ± √(25 − 15))/2 = (5 ± 3.162)/2 → **λ₁ ≈ 4.081, λ₂ ≈ 0.919**.\n\nPC1 explains 4.081 / 5 ≈ **81.6%** of the variance.\n\n{{widget:eigen}}',
+    },
+  ],
+};
+export default m;
