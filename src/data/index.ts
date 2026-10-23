@@ -40,7 +40,7 @@ export const TRACKS: Track[] = [
   {
     id: 'cse443',
     title: 'CSE443 Bioinformatics (CSE department)',
-    blurb: 'The full course in lecture order. L01–L08 = mid-term syllabus, L10–L15 = final syllabus. Every exam and quiz question is covered.',
+    blurb: 'The full course in lecture order (L01–L15). Each lesson has interactive widgets, mini-games, a quiz and worked problems adapted from the course quizzes and exams.',
     modules: ['intro', 'oric', 'motifs', 'assembly', 'sequencing', 'readmap', 'expression1', 'expression2', 'alignment', 'phylogeny', 'hmm', 'ml', 'neural', 'networks'],
   },
   {

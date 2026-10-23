@@ -67,6 +67,8 @@ def phred33ToQ(ch):  return ord(ch) - 33
 
 {{widget:phred}}
 
+{{game:phred-flash}}
+
 :::cs From the course notebook (Sequence_reads.ipynb)
 The notebook reads the φX174 genome from FASTA (skip lines starting with `>`), parses a FASTQ file (lines 2 and 4 of every 4), builds a **histogram of base qualities**, plots **GC content by read position** and **mean quality by position**, then maps reads with naive exact matching. Real reads match only partially until you (1) use just the first 30 bases (fewer errors) and (2) also search the **reverse complement**, because reads come from both strands.
 :::

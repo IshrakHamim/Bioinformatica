@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '../auth/auth';
 import { levelInfo, levelTitle, streak, totalXp, useProgress } from '../lib/progress';
 import { getSyncStatus, onSyncStatus } from '../lib/sync';
 
@@ -18,20 +17,18 @@ export function Logo({ size = 30 }: { size?: number }) {
 const NAV: { to: string; label: string; icon: string; section?: string }[] = [
   { to: '/', label: 'Dashboard', icon: '🏠' },
   { to: '/learn', label: 'Learning paths', icon: '🗺️' },
-  { to: '/exam', label: 'Exam prep', icon: '🎯' },
   { to: '/flashcards', label: 'Flashcards', icon: '🃏', section: 'Practice' },
   { to: '/games', label: 'Mini-games', icon: '🎮' },
   { to: '/graph', label: 'Knowledge graph', icon: '🕸️', section: 'Explore' },
   { to: '/mindmaps', label: 'Mind maps', icon: '🧠' },
   { to: '/glossary', label: 'Glossary & search', icon: '🔎' },
-  { to: '/settings', label: 'Settings & sync', icon: '⚙️', section: 'Account' },
+  { to: '/settings', label: 'Settings & sync', icon: '⚙️', section: 'Settings' },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const p = useProgress();
-  const { session, logout } = useAuth();
   const xp = totalXp(p);
   const lv = levelInfo(xp);
   const [sync, setSync] = useState(getSyncStatus());
@@ -60,10 +57,6 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="tiny muted">{xp} XP · {lv.need - lv.into} to next level</div>
           <div className="tiny muted" title={sync.message} style={{ marginTop: 4 }}>
             {sync.mode === 'local' ? '💾 Local only' : sync.state === 'error' ? '⚠️ Sync error' : sync.state === 'syncing' ? '🔄 Syncing…' : '☁️ Synced'}
-          </div>
-          <div className="spread" style={{ marginTop: 6 }}>
-            <span className="tiny">👤 {session?.user}</span>
-            <button className="btn small ghost" onClick={logout}>Log out</button>
           </div>
         </div>
       </aside>

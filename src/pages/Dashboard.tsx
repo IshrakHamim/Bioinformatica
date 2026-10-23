@@ -2,19 +2,20 @@ import { Link } from 'react-router-dom';
 import { MODULES, MODULE_BY_ID, TRACKS } from '../data';
 import { dueCards } from '../components/Flashcards';
 import { levelInfo, levelTitle, streak, totalXp, useProgress } from '../lib/progress';
-import { badges, examReadiness, moduleStats } from '../lib/stats';
-import { useAuth } from '../auth/auth';
+import { badges, moduleStats, trackProgress } from '../lib/stats';
+import { gamesFor } from '../games/registry';
 
 export function ModuleCard({ id }: { id: string }) {
   const p = useProgress();
   const m = MODULE_BY_ID[id];
   const s = moduleStats(m, p);
+  const games = gamesFor(m.id);
   return (
     <Link to={`/m/${m.id}`} className="card mod-card">
       <div className="row" style={{ flexWrap: 'nowrap' }}>
         <div className="mod-icon" style={{ background: m.color }}>{m.icon}</div>
         <div>
-          <div className="tiny muted">{m.code}{m.exam ? ` · ${m.exam === 'mid' ? 'Mid-term' : 'Final'} syllabus` : ''} · ~{m.hours} h</div>
+          <div className="tiny muted">{m.code} · ~{m.hours} h{games.length ? ` · 🎮 ${games.map((g) => g.title).join(', ')}` : ''}</div>
           <b>{m.title}</b>
         </div>
       </div>
@@ -30,21 +31,18 @@ export function ModuleCard({ id }: { id: string }) {
 
 export default function Dashboard() {
   const p = useProgress();
-  const { session } = useAuth();
   const xp = totalXp(p);
   const lv = levelInfo(xp);
   const allCards = MODULES.flatMap((m) => m.flashcards.map((c) => ({ ...c, key: `${m.id}/${c.id}`, module: m.code })));
   const due = dueCards(allCards, p.cards).length;
   const next = p.lastModule ? MODULE_BY_ID[p.lastModule] : MODULES.find((m) => m.track === 'cse443' && moduleStats(m, p).secFrac < 1) ?? MODULES[3];
   const b = badges(p);
-  const mid = examReadiness('mid', p);
-  const fin = examReadiness('final', p);
   return (
     <div className="col" style={{ gap: 18 }}>
       <div className="hero">
         <div className="spread">
           <div>
-            <div className="small muted">Welcome back, {session?.user}</div>
+            <div className="small muted">Welcome back</div>
             <h1 style={{ margin: '4px 0' }}>Level {lv.level}: {levelTitle(lv.level)}</h1>
             <div className="muted small">{xp} XP · {lv.need - lv.into} XP to level {lv.level + 1}</div>
           </div>
@@ -63,13 +61,16 @@ export default function Dashboard() {
       </div>
 
       <div className="grid cols-2">
-        {([['mid', mid, 'Mid-term syllabus (L01–L08)'], ['final', fin, 'Final syllabus (L10–L15)']] as const).map(([k, v, label]) => (
-          <Link to={`/exam?tab=${k}`} key={k} className="card mod-card">
-            <div className="spread"><b>🎯 {label}</b><span className="pill accent">{Math.round(v * 100)}% ready</span></div>
-            <div className="progress"><div style={{ width: `${v * 100}%` }} /></div>
-            <div className="small muted">Readiness = average mastery (lessons 50%, quiz 35%, flashcards 15%) of the modules in this exam.</div>
-          </Link>
-        ))}
+        {TRACKS.filter((t) => t.modules.length).map((t) => {
+          const v = trackProgress(t, p);
+          return (
+            <Link to={`/learn#${t.id}`} key={t.id} className="card mod-card">
+              <div className="spread"><b>🗺️ {t.title}</b><span className="pill accent">{Math.round(v * 100)}%</span></div>
+              <div className="progress"><div style={{ width: `${v * 100}%` }} /></div>
+              <div className="small muted">{t.modules.length} modules · checkpoint best {p.checkpoints[t.id] !== undefined ? `${Math.round(p.checkpoints[t.id] * 100)}%` : '—'}</div>
+            </Link>
+          );
+        })}
       </div>
 
       {TRACKS.filter((t) => t.modules.length).map((t) => (

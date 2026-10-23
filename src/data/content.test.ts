@@ -32,6 +32,11 @@ describe('content integrity', () => {
     const texts = MODULES.flatMap((m) => [m.content, ...m.practice.map((p) => p.solution)]);
     for (const t of texts) for (const w of t.matchAll(/\{\{widget:([\w-]+)/g)) expect(WIDGETS[w[1]], w[1]).toBeDefined();
   });
+  it('every game embedded in content exists and belongs to a real module', async () => {
+    const { GAMES, GAME_BY_ID } = await import('../games/registry');
+    for (const g of GAMES) expect(MODULE_BY_ID[g.module], g.id).toBeDefined();
+    for (const m of MODULES) for (const e of m.content.matchAll(/\{\{game:([\w-]+)\}\}/g)) expect(GAME_BY_ID[e[1]]?.module, `${m.id} embeds ${e[1]}`).toBe(m.id);
+  });
   it('concept graph references are valid and acyclic', () => {
     for (const c of CONCEPTS) {
       expect(MODULE_BY_ID[c.module], c.id).toBeDefined();

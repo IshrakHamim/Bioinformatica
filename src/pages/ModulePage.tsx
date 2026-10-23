@@ -6,14 +6,16 @@ import { MindMap } from '../components/MindMap';
 import { Quiz } from '../components/Quiz';
 import { toast } from '../components/Toast';
 import { YouTube } from '../components/YouTube';
+import { GameCard } from '../components/GameCard';
+import { gamesFor } from '../games/registry';
 import { BlockMd, Markdown } from '../lib/markdown';
 import { XP, update, useProgress } from '../lib/progress';
 import { moduleStats } from '../lib/stats';
 import type { Module, Practice } from '../data/types';
 
-const TABS = ['learn', 'media', 'quiz', 'cards', 'map', 'practice'] as const;
+const TABS = ['learn', 'media', 'quiz', 'practice', 'games', 'cards', 'map'] as const;
 type Tab = (typeof TABS)[number];
-const TAB_LABEL: Record<Tab, string> = { learn: '📖 Lessons', media: '🎬 Watch & read', quiz: '❓ Quiz', cards: '🃏 Flashcards', map: '🧠 Mind map', practice: '✍️ Exam practice' };
+const TAB_LABEL: Record<Tab, string> = { learn: '📖 Lessons', media: '🎬 Watch & read', quiz: '❓ Quiz', practice: '✍️ Practice problems', games: '🎮 Games', cards: '🃏 Flashcards', map: '🧠 Mind map' };
 
 export function PracticeCard({ m, x }: { m: Module; x: Practice }) {
   const p = useProgress();
@@ -25,8 +27,7 @@ export function PracticeCard({ m, x }: { m: Module; x: Practice }) {
       <div className="spread">
         <b>{x.title}</b>
         <div className="row">
-          {x.source && <span className="pill warn">{x.source}</span>}
-          <span className="pill">{x.exam === 'both' ? 'Mid & Final' : x.exam === 'mid' ? 'Mid-term' : 'Final'}</span>
+          {x.source && <span className="pill">{x.source}</span>}
           {solved && <span className="pill ok">✓ solved</span>}
         </div>
       </div>
@@ -68,6 +69,7 @@ export default function ModulePage() {
     });
     if (!wasDone) toast(`+${XP.section} XP · section complete`);
   };
+  const games = gamesFor(m.id);
   const cards = m.flashcards.map((c) => ({ ...c, key: `${m.id}/${c.id}`, module: m.code }));
   return (
     <div>
@@ -92,7 +94,7 @@ export default function ModulePage() {
         </div>
       )}
       <div className="tabs" role="tablist">
-        {TABS.filter((t) => t !== 'practice' || m.practice.length).map((t) => (
+        {TABS.filter((t) => (t !== 'practice' || m.practice.length) && (t !== 'games' || games.length)).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setParams({ tab: t })}>{TAB_LABEL[t]}</button>
         ))}
       </div>
@@ -126,6 +128,8 @@ export default function ModulePage() {
             <span>Finished reading? Test yourself.</span>
             <div className="row">
               <button className="btn primary" onClick={() => setParams({ tab: 'quiz' })}>Take the quiz →</button>
+              {m.practice.length > 0 && <button className="btn" onClick={() => setParams({ tab: 'practice' })}>Practice problems →</button>}
+              {games.length > 0 && <button className="btn" onClick={() => setParams({ tab: 'games' })}>Play {games.length === 1 ? games[0].title : `${games.length} games`} →</button>}
               <button className="btn" onClick={() => setParams({ tab: 'cards' })}>Flashcards →</button>
             </div>
           </div>
@@ -194,9 +198,16 @@ export default function ModulePage() {
         </div>
       )}
 
+      {tab === 'games' && (
+        <div className="col">
+          <p className="muted small">Games that drill this lesson's ideas until they feel automatic. They also appear inside the lesson, next to the section they practise. High scores add XP.</p>
+          {games.map((g) => <GameCard key={g.id} game={g} open={games.length === 1} />)}
+        </div>
+      )}
+
       {tab === 'practice' && (
         <div className="col">
-          <p className="muted small">Exam-style problems (many adapted from the Summer 2025 quizzes and exams), with fully worked solutions verified by the site's own algorithm implementations. Try each on paper before revealing the solution.</p>
+          <p className="muted small">Problems adapted from the course quizzes and exams, with fully worked solutions verified by the site's own algorithm implementations. Working one through on paper is the best way to check you really understand the algorithm; reveal the solution afterwards.</p>
           {m.practice.map((x) => <PracticeCard key={x.id} m={m} x={x} />)}
         </div>
       )}

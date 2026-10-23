@@ -54,6 +54,7 @@ export function setGistConfig(cfg: GistConfig | null) {
 let authToken = '';
 
 async function serverPull(): Promise<Progress | null | 'unavailable'> {
+  if (!authToken) return 'unavailable'; // the server needs an account; none until accounts return
   if (location.hostname.endsWith('github.io')) return 'unavailable'; // static hosting: no API routes
   try {
     const r = await fetch('api/progress', { headers: { Authorization: `Basic ${authToken}` } });
@@ -129,7 +130,7 @@ async function push() {
 }
 
 /** Pull remote progress, merge it with local, and push the merged result. */
-export async function startSync(token: string) {
+export async function startSync(token = '') {
   authToken = token;
   setChangeHook(null);
   const gist = getGistConfig();

@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { AA_NAMES, CODON_TABLE, reverseComplement } from '../lib/bio/strings';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AA_NAMES, CODON_TABLE, phred33Char, reverseComplement } from '../lib/bio/strings';
 import { deBruijnFromKmers, eulerianPath, spellPath } from '../lib/bio/assembly';
 import { align } from '../lib/bio/alignment';
 import { sampleHMM, viterbi, type HMM } from '../lib/bio/hmm';
 import { minimumSkew, skewArray } from '../lib/bio/strings';
+import { BoyerMoorePreprocessing } from '../lib/bio/matching';
+import { toNewick, upgma } from '../lib/bio/phylo';
+import { assign, centroids, dist } from '../lib/bio/cluster';
+import { metrics, type Confusion } from '../lib/bio/ml';
+import { barabasiAlbert, betweenness, closeness, edgesOf, type Graph } from '../lib/bio/network';
 import { syntheticGenome } from '../widgets/oric';
 import { GraphView } from '../widgets/GraphView';
-import { LineChart, Seq } from '../widgets/ui';
+import { LineChart, PALETTE, Scatter, Seq, fmt } from '../widgets/ui';
 import { update, useProgress } from '../lib/progress';
 import { toast } from '../components/Toast';
 
@@ -367,6 +372,405 @@ export function MotifHunter() {
         <button className="btn primary" disabled={picks.some((p) => p === null)} onClick={() => { setDone(true); submit(correct); }}>Check</button>
       ) : (
         <div className="callout tip small">You found {correct}/5. The implanted motif was <b className="mono">{rows[0].motif}</b> (green). That's the search Greedy/Gibbs automate across thousands of sequences.</div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- shared: timed multiple-choice rush
+interface McqRound {
+  prompt: ReactNode;
+  correct: string;
+  opts: string[];
+  why: string;
+}
+const shuffled = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
+
+/** Pick `n` distinct options: the correct one plus distractors from `pool`. */
+function optionsFrom(correct: string, pool: string[], n = 4) {
+  const opts = new Set([correct]);
+  for (const o of shuffled(pool)) if (opts.size < n) opts.add(o);
+  return shuffled([...opts]);
+}
+
+function McqRush({ id, seconds, intro, make }: { id: string; seconds: number; intro: ReactNode; make: () => McqRound }) {
+  const { best, submit } = useHighScore(id);
+  const [running, setRunning] = useState(false);
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [feedback, setFeedback] = useState<{ ok: boolean; why: string } | null>(null);
+  const [round, setRound] = useState(make);
+  const scoreRef = useRef(0);
+  scoreRef.current = score;
+  const left = useCountdown(seconds, running, () => {
+    setRunning(false);
+    submit(scoreRef.current);
+  });
+  const pick = (o: string) => {
+    if (!running) return;
+    const ok = o === round.correct;
+    if (ok) {
+      setScore((s) => s + 10 + Math.min(streak, 10));
+      setStreak((s) => s + 1);
+    } else setStreak(0);
+    setFeedback({ ok, why: round.why });
+    setRound(make());
+  };
+  return (
+    <div className="col">
+      <div className="spread">
+        <span className="pill">⏱ {left}s</span><span className="pill accent">Score {score}</span><span className="pill">🔥 {streak}</span><span className="pill">Best {best}</span>
+      </div>
+      {running ? (
+        <>
+          <div>{round.prompt}</div>
+          <div className="grid cols-2">
+            {round.opts.map((o) => <button key={o} className="btn" style={{ padding: 12 }} onClick={() => pick(o)}>{o}</button>)}
+          </div>
+          {feedback && <div className="small"><b style={{ color: feedback.ok ? 'var(--ok)' : 'var(--danger)' }}>{feedback.ok ? '✓' : '✗'}</b> Last one: {feedback.why}</div>}
+        </>
+      ) : (
+        <div className="center">
+          <div>{intro}</div>
+          <button className="btn primary" style={{ marginTop: 10 }} onClick={() => { setScore(0); setStreak(0); setFeedback(null); setRound(make()); setRunning(true); }}>{score ? 'Play again' : 'Start'}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Phred Flash
+const oneIn = (q: number) => `1 in ${(10 ** (q / 10)).toLocaleString('en-US')}`;
+function phredRound(): McqRound {
+  const kind = rnd(4);
+  if (kind === 0) {
+    const q = 2 + rnd(40);
+    const pool = Array.from({ length: 11 }, (_, i) => String(Math.max(0, q - 5 + i)));
+    const c = phred33Char(q);
+    return {
+      prompt: <p>FASTQ (Phred+33) quality character <b className="mono" style={{ fontSize: '1.6rem' }}>{c}</b>. What is its quality score Q?</p>,
+      correct: String(q),
+      opts: optionsFrom(String(q), pool),
+      why: `'${c}' has ASCII code ${q + 33}; subtract 33 to get Q = ${q}.`,
+    };
+  }
+  const q = [10, 20, 30, 40, 50][rnd(5)];
+  if (kind === 1) {
+    return {
+      prompt: <p>A base call has quality <b>Q = {q}</b>. What is the chance that it is wrong?</p>,
+      correct: oneIn(q),
+      opts: optionsFrom(oneIn(q), [10, 20, 30, 40, 50].map(oneIn)),
+      why: `P(error) = 10^(−Q/10) = 10^(−${q / 10}), i.e. ${oneIn(q)}.`,
+    };
+  }
+  if (kind === 2) {
+    const p = 10 ** (-q / 10);
+    return {
+      prompt: <p>A base call has error probability <b>{p}</b>. What is its Phred quality Q?</p>,
+      correct: String(q),
+      opts: optionsFrom(String(q), ['10', '20', '30', '40', '50']),
+      why: `Q = −10·log₁₀(${p}) = ${q}.`,
+    };
+  }
+  const c = phred33Char(q);
+  return {
+    prompt: <p>Quality character <b className="mono" style={{ fontSize: '1.6rem' }}>{c}</b> (Phred+33). How likely is this base call to be wrong?</p>,
+    correct: oneIn(q),
+    opts: optionsFrom(oneIn(q), [10, 20, 30, 40, 50].map(oneIn)),
+    why: `'${c}' = ASCII ${q + 33} → Q = ${q} → P(error) = 10^(−${q / 10}) = ${oneIn(q)}.`,
+  };
+}
+export function PhredFlash() {
+  return (
+    <McqRush
+      id="phred-flash"
+      seconds={60}
+      make={phredRound}
+      intro={<p>Decode FASTQ quality characters and Phred scores for 60 seconds. Remember: Q = ASCII − 33, and P(error) = 10<sup>−Q/10</sup>.</p>}
+    />
+  );
+}
+
+// ---------------------------------------------------------------- Shift Sprint (Boyer-Moore bad character rule)
+function shiftRound(): McqRound {
+  const m = 5 + rnd(3);
+  const P = randDna(m);
+  const j = m - 1 - rnd(m - 1); // mismatch position; P[j+1..] matched
+  let c = 'ACGT'[rnd(4)];
+  while (c === P[j]) c = 'ACGT'[rnd(4)];
+  const T = randDna(j) + c + P.slice(j + 1);
+  const shift = new BoyerMoorePreprocessing(P).badCharacterShift(j, c);
+  const k = P.lastIndexOf(c, j - 1);
+  const marks: Record<number, string> = { [j]: 'hl-bad' };
+  for (let i = j + 1; i < m; i++) marks[i] = 'hl-good';
+  return {
+    prompt: (
+      <div>
+        <p className="small">Compare right to left. The green suffix matches; the red position mismatches. By the <b>bad character rule</b> alone, how far does P shift?</p>
+        <div className="seq" style={{ fontSize: '1.6rem' }}>
+          <div>T: <Seq s={T} marks={marks} /></div>
+          <div>P: <Seq s={P} marks={marks} /></div>
+        </div>
+      </div>
+    ),
+    correct: String(shift),
+    opts: optionsFrom(String(shift), Array.from({ length: m }, (_, i) => String(i + 1))),
+    why: k >= 0
+      ? `T has ${c} at the mismatch; the rightmost ${c} in P left of it is at offset ${k}, so shift ${j} − ${k} = ${shift} to line them up.`
+      : `T has ${c} at the mismatch and P has no ${c} to its left, so P slides past it: shift ${j} + 1 = ${shift}.`,
+  };
+}
+export function ShiftSprint() {
+  return (
+    <McqRush
+      id="shift-sprint"
+      seconds={90}
+      make={shiftRound}
+      intro={<p>Boyer-Moore skips alignments by learning from mismatches. For 90 seconds, work out how far the <b>bad character rule</b> shifts the pattern.</p>}
+    />
+  );
+}
+
+// ---------------------------------------------------------------- Metric Match
+const METRIC_INFO: Record<string, { name: string; formula: (c: Confusion) => string }> = {
+  accuracy: { name: 'accuracy', formula: (c) => `(TP + TN) / total = (${c.tp} + ${c.tn}) / ${c.tp + c.fp + c.tn + c.fn}` },
+  precision: { name: 'precision', formula: (c) => `TP / (TP + FP) = ${c.tp} / (${c.tp} + ${c.fp})` },
+  recall: { name: 'recall (sensitivity)', formula: (c) => `TP / (TP + FN) = ${c.tp} / (${c.tp} + ${c.fn})` },
+  specificity: { name: 'specificity', formula: (c) => `TN / (TN + FP) = ${c.tn} / (${c.tn} + ${c.fp})` },
+  f1: { name: 'F1 score', formula: () => '2 · precision · recall / (precision + recall)' },
+  mcc: { name: 'MCC', formula: () => '(TP·TN − FP·FN) / √((TP+FP)(TP+FN)(TN+FP)(TN+FN))' },
+};
+function metricRound(): McqRound {
+  const c: Confusion = { tp: 5 + rnd(90), fp: rnd(50), tn: 5 + rnd(90), fn: rnd(50) };
+  const mt = metrics(c);
+  const keys = Object.keys(METRIC_INFO) as (keyof typeof mt & keyof typeof METRIC_INFO)[];
+  const key = keys[rnd(keys.length)];
+  const v = (x: number) => x.toFixed(2);
+  // distractors are the other metrics' values: the classic mix-ups
+  const pool = [...keys.filter((k) => k !== key).map((k) => v(mt[k])), v(mt.balancedAccuracy), v(Math.random())];
+  return {
+    prompt: (
+      <div>
+        <p>What is the <b>{METRIC_INFO[key].name}</b> of this classifier?</p>
+        <table className="mtable" style={{ margin: '0 auto' }}>
+          <thead><tr><th></th><th>Predicted +</th><th>Predicted −</th></tr></thead>
+          <tbody>
+            <tr><th>Actual +</th><td>TP = {c.tp}</td><td>FN = {c.fn}</td></tr>
+            <tr><th>Actual −</th><td>FP = {c.fp}</td><td>TN = {c.tn}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    ),
+    correct: v(mt[key]),
+    opts: optionsFrom(v(mt[key]), pool.filter((o) => o !== v(mt[key]))),
+    why: `${METRIC_INFO[key].name} = ${METRIC_INFO[key].formula(c)} = ${v(mt[key])}.`,
+  };
+}
+export function MetricMatch() {
+  return (
+    <McqRush
+      id="metric-match"
+      seconds={120}
+      make={metricRound}
+      intro={<p>Read a confusion matrix and pick the right metric for 2 minutes. The wrong options are the <i>other</i> metrics, so mixing up precision and recall costs you.</p>}
+    />
+  );
+}
+
+// ---------------------------------------------------------------- Tree Builder (UPGMA)
+function uniqueMin(D: number[][]) {
+  const vals = D.flatMap((r, i) => r.filter((_, j) => j > i));
+  const m = Math.min(...vals);
+  return vals.filter((x) => Math.abs(x - m) < 1e-9).length === 1;
+}
+function makeTree() {
+  for (;;) {
+    const n = 4 + rnd(2);
+    const labels = 'ABCDE'.slice(0, n).split('');
+    const D = labels.map(() => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) D[i][j] = D[j][i] = 2 * (1 + rnd(10));
+    const r = upgma(labels, D);
+    const mats = [{ labels, D }, ...r.steps.slice(0, -1).map((s) => s.matrixAfter)];
+    if (mats.every((x) => uniqueMin(x.D))) return { mats, steps: r.steps, newick: toNewick(r.root) };
+  }
+}
+export function TreeBuilder() {
+  const { best, submit } = useHighScore('tree-builder');
+  const [puz, setPuz] = useState(makeTree);
+  const [step, setStep] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
+  const [msg, setMsg] = useState('');
+  const done = step === puz.steps.length;
+  const cur = puz.mats[Math.min(step, puz.mats.length - 1)];
+  const score = Math.max(0, 100 - 25 * mistakes);
+  const click = (i: number, j: number) => {
+    if (done || i === j) return;
+    const [a, b] = [cur.labels[i], cur.labels[j]];
+    const s = puz.steps[step];
+    if (new Set([a, b, ...s.merged]).size === 2) {
+      setStep(step + 1);
+      setMsg(`✓ Merge ${a} and ${b} at height ${fmt(s.distance, 2)} / 2 = ${fmt(s.height, 2)}. New distances to (${a},${b}) are size-weighted averages.`);
+      if (step + 1 === puz.steps.length) submit(score);
+    } else {
+      setMistakes(mistakes + 1);
+      setMsg(`✗ D(${a}, ${b}) = ${fmt(cur.D[i][j], 2)} is not the smallest distance in the matrix.`);
+    }
+  };
+  return (
+    <div className="col">
+      <div className="spread"><span className="pill accent">Score {score}</span><span className="pill">Best {best}</span>
+        <button className="btn small" onClick={() => { setPuz(makeTree()); setStep(0); setMistakes(0); setMsg(''); }}>New matrix</button>
+      </div>
+      <p className="small">Build the tree with <b>UPGMA</b>: click the cell holding the smallest distance to merge that pair of clusters. Each wrong click costs 25 points.</p>
+      {!done && (
+        <div className="scroll-x">
+          <table className="mtable">
+            <thead><tr><th></th>{cur.labels.map((l) => <th key={l}>{l}</th>)}</tr></thead>
+            <tbody>
+              {cur.D.map((row, i) => (
+                <tr key={cur.labels[i]}>
+                  <th>{cur.labels[i]}</th>
+                  {row.map((v, j) => (
+                    <td key={j} onClick={() => click(i, j)} style={{ cursor: i === j ? 'default' : 'pointer' }} className={i === j ? 'dim' : ''}>{i === j ? '·' : fmt(v, 2)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ol className="small" style={{ margin: 0 }}>
+        {puz.steps.slice(0, step).map((s) => <li key={s.newCluster}>merge {s.merged[0]} + {s.merged[1]} at height {fmt(s.height, 2)}</li>)}
+      </ol>
+      {msg && <div className="callout tip small">{msg}</div>}
+      {done && <div className="callout tip small">🌳 Tree complete with {mistakes} mistake{mistakes === 1 ? '' : 's'}. Newick: <span className="mono">{puz.newick}</span></div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Lloyd Step (k-means)
+const COLOR_NAMES = ['blue', 'orange', 'green'];
+function makeLloyd() {
+  const clamp = (x: number) => Math.min(9.8, Math.max(0.2, x));
+  const jitter = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.6;
+  for (;;) {
+    const k = 2 + rnd(2);
+    const blobs = Array.from({ length: k }, () => [1.5 + Math.random() * 7, 1.5 + Math.random() * 7]);
+    const pts = Array.from({ length: 6 * k }, (_, i) => [clamp(blobs[i % k][0] + jitter()), clamp(blobs[i % k][1] + jitter())]);
+    const old = Array.from({ length: k }, () => [1 + Math.random() * 8, 1 + Math.random() * 8]);
+    const labels = assign(pts, old);
+    const sizes = old.map((_, c) => labels.filter((l) => l === c).length);
+    if (sizes.every((s) => s >= 2)) return { pts, old, labels, next: centroids(pts, labels, k, old), target: rnd(k) };
+  }
+}
+export function LloydStep() {
+  const { best, submit } = useHighScore('lloyd-step');
+  const ROUNDS = 5;
+  const [puz, setPuz] = useState(makeLloyd);
+  const [guess, setGuess] = useState<number[] | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [round, setRound] = useState(1);
+  const [total, setTotal] = useState(0);
+  const err = guess ? dist(guess, puz.next[puz.target]) : 0;
+  const pts = Math.max(0, Math.round(100 - 40 * err));
+  const lock = () => {
+    setRevealed(true);
+    const nt = total + pts;
+    setTotal(nt);
+    if (round === ROUNDS) submit(nt);
+  };
+  const next = () => {
+    if (round === ROUNDS) {
+      setRound(1);
+      setTotal(0);
+    } else setRound(round + 1);
+    setPuz(makeLloyd());
+    setGuess(null);
+    setRevealed(false);
+  };
+  const color = PALETTE[puz.target];
+  return (
+    <div className="col">
+      <div className="spread"><span className="pill">Round {round}/{ROUNDS}</span><span className="pill accent">Total {total}</span><span className="pill">Best {best}</span></div>
+      <p className="small">One iteration of <b>Lloyd's algorithm</b>: every point joins its nearest center, then each center moves to the mean of its points. Click where the <b style={{ color }}>{COLOR_NAMES[puz.target]}</b> center will move.</p>
+      <Scatter
+        points={puz.pts}
+        colors={revealed ? puz.labels.map((l) => PALETTE[l]) : puz.pts.map(() => 'var(--text-dim)')}
+        centers={[...puz.old.map((p, i) => ({ p, color: PALETTE[i] })), ...(revealed ? [{ p: puz.next[puz.target], color }] : [])]}
+        domain={[0, 10, 0, 10]}
+        onClick={revealed ? undefined : (x, y) => setGuess([x, y])}
+        extra={(X, Y) => (
+          <>
+            {revealed && <line x1={X(puz.old[puz.target][0])} y1={Y(puz.old[puz.target][1])} x2={X(puz.next[puz.target][0])} y2={Y(puz.next[puz.target][1])} stroke={color} strokeWidth={2} strokeDasharray="4 3" />}
+            {guess && <circle cx={X(guess[0])} cy={Y(guess[1])} r={8} fill="none" stroke="var(--text)" strokeWidth={2} />}
+          </>
+        )}
+      />
+      <div className="row">
+        {!revealed ? (
+          <button className="btn primary" disabled={!guess} onClick={lock}>Lock in guess</button>
+        ) : (
+          <>
+            <span className="small">Off by {fmt(err, 2)} units → <b>{pts} points</b>. Points are now colored by their nearest center; the dashed line shows the move.</span>
+            <button className="btn primary" onClick={next}>{round === ROUNDS ? 'Play again' : 'Next round'}</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Hub Hunter (network centrality)
+type Measure = 'degree' | 'closeness' | 'betweenness';
+const MEASURE_HINT: Record<Measure, string> = {
+  degree: 'Degree = number of direct interaction partners. High-degree proteins are hubs.',
+  closeness: 'Closeness = (n − 1) / sum of shortest-path distances to every other node: the node that reaches everyone fastest.',
+  betweenness: 'Betweenness = how many shortest paths between other pairs pass through the node: the bottleneck between modules.',
+};
+function makeHub() {
+  for (;;) {
+    const raw = barabasiAlbert(10 + rnd(4), 1 + rnd(2), Math.random);
+    const g: Graph = Object.fromEntries(Object.entries(raw).map(([k, v]) => [`P${+k.slice(1) + 1}`, v.map((x) => `P${+x.slice(1) + 1}`)]));
+    const measure = (['degree', 'closeness', 'betweenness'] as const)[rnd(3)];
+    const vals: Record<string, number> = measure === 'degree' ? Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.length])) : measure === 'closeness' ? closeness(g) : betweenness(g);
+    const ranked = Object.entries(vals).sort((a, b) => b[1] - a[1]);
+    if (ranked[0][1] - ranked[1][1] > 1e-9) return { g, measure, ranked, seed: String(Math.random()) };
+  }
+}
+export function HubHunter() {
+  const { best, submit } = useHighScore('hub-hunter');
+  const [puz, setPuz] = useState(makeHub);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
+  const top = puz.ranked[0][0];
+  const click = (id: string) => {
+    if (picked) return;
+    setPicked(id);
+    if (id === top) {
+      const ns = streak + 1;
+      setStreak(ns);
+      submit(ns);
+    } else setStreak(0);
+  };
+  const shade = (id: string) => (!picked ? undefined : id === top ? 'rgba(26,156,91,0.45)' : id === picked ? 'rgba(209,67,91,0.45)' : undefined);
+  return (
+    <div className="col">
+      <div className="spread"><span className="pill accent">Streak {streak}</span><span className="pill">Best streak {best}</span>
+        <button className="btn small primary" onClick={() => { setPuz(makeHub()); setPicked(null); }}>{picked ? 'Next network' : 'Skip'}</button>
+      </div>
+      <p>Click the protein with the highest <b>{puz.measure} centrality</b>.</p>
+      <GraphView
+        seedKey={puz.seed}
+        nodes={Object.keys(puz.g).map((id) => ({ id, color: shade(id) }))}
+        edges={edgesOf(puz.g).map(([from, to]) => ({ from, to }))}
+        onNodeClick={click}
+        height={340}
+      />
+      {picked && (
+        <div className="callout tip small">
+          {picked === top ? '✓ Correct!' : `✗ The answer was ${top}.`} {MEASURE_HINT[puz.measure]}
+          <div className="mono" style={{ marginTop: 4 }}>Top 4: {puz.ranked.slice(0, 4).map(([k, v]) => `${k} = ${fmt(v, 2)}`).join(' · ')}</div>
+        </div>
       )}
     </div>
   );

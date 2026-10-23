@@ -1,6 +1,6 @@
 # Bioinformatica
 
-An interactive, gamified study site for bioinformatics. It turns the **CSE443 Bioinformatics** course (BRAC University, CSE department) into lessons with live algorithm widgets, quizzes, spaced-repetition flashcards, mind maps, a concept knowledge graph, mini-games, exam practice with worked solutions, and a state-of-the-art track (AlphaFold, protein design, genomic foundation models). A track for the biotechnology department's course is scaffolded and ready to fill.
+An interactive, gamified study site for bioinformatics. It turns the **CSE443 Bioinformatics** course (BRAC University, CSE department) into lessons with live algorithm widgets, quizzes, spaced-repetition flashcards, mind maps, a concept knowledge graph, mini-games built into the lessons, practice problems with worked solutions, and a state-of-the-art track (AlphaFold, protein design, genomic foundation models). A track for the biotechnology department's course is scaffolded and ready to fill.
 
 Written for a beginner graduate student with a CS background: every biological idea is introduced from scratch, and every algorithm can be stepped through visually.
 
@@ -10,24 +10,19 @@ Written for a beginner graduate student with a CS background: every biological i
 |---|---|
 | **20 modules** | 3 foundations (math, algorithms, data/tools) · 14 course lectures L01–L15 · 3 frontiers |
 | **45 interactive widgets** | skew diagrams, Gibbs sampler race, de Bruijn graph + Euler path animation, Illumina SBS simulator, Boyer-Moore stepper, k-mer index, k-means / soft k-means / hierarchical clustering, PCA, in-browser t-SNE, NW/SW DP tables, UPGMA / NJ / Fitch, Viterbi & Forward tables, casino HMM, logistic regression with class weights, network centralities, scale-free robustness, Girvan–Newman, a live AlphaFold DB 3D viewer… |
-| **Exam prep** | every Summer 2025 quiz and exam topic covered; mid/final readiness meters; timed mock tests; worked solutions computed by the site's own (unit-tested) algorithms |
-| **Gamification** | XP, levels, streaks, 16 badges, 7 mini-games with high scores |
+| **Practice** | a quiz and worked practice problems in every module (adapted from the course quizzes and exams, solutions computed by the site's own unit-tested algorithms); a mixed checkpoint quiz for each learning path |
+| **Gamification** | XP, levels, streaks, 17 badges, 13 mini-games with high scores, each embedded in the lesson it practises |
 | **Study tools** | 170 flashcards (Leitner spaced repetition), per-module and whole-course mind maps, a 154-concept prerequisite graph, glossary and full-text search |
 | **Resources** | 74 YouTube videos (each checked to exist), primary papers and docs, Rosalind problems for every algorithm |
 
-## Login
-
-Username `admin`, password `admin123`.
-
-The login is a **client-side gate** on a static site, used to scope progress to a user. It is not real security; anyone can read the JavaScript. The Vercel sync API re-checks the credentials server-side; set `BIOINFORMATICA_USER` / `BIOINFORMATICA_PASSWORD` env vars there to change them. Changing the client-side login means updating the hash in `src/auth/auth.tsx`; the comment there shows how it is computed.
-
 ## Progress tracking across devices
 
-Progress (completed sections, quiz bests, flashcard schedules, XP, game scores) is always saved in the browser. To sync between devices, choose one:
+There is no login for now. Progress (completed sections, quiz bests, flashcard schedules, XP, game scores) is always saved in the browser. To sync between devices, choose one:
 
-1. **Vercel + Redis (automatic).** Deploy to Vercel, then in the Vercel dashboard go to *Storage → Marketplace → Upstash Redis* (free tier) and connect it to the project. This sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Redeploy. After logging in, every device syncs through `api/progress.js`.
-2. **GitHub Gist (works on GitHub Pages).** Create a GitHub personal access token (classic) with only the `gist` scope and paste it in *Settings & sync* on each device. Progress is stored in a private Gist in your account.
-3. **Export / import** a JSON file from *Settings & sync*.
+1. **GitHub Gist (works on GitHub Pages).** Create a GitHub personal access token (classic) with only the `gist` scope and paste it in *Settings & sync* on each device. Progress is stored in a private Gist in your account.
+2. **Export / import** a JSON file from *Settings & sync*.
+
+Server sync through `api/progress.js` (Vercel + Upstash Redis, which sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`) is kept for later: it needs accounts, which will return once a Redis store is connected. Until then the client does not call it.
 
 Syncing merges rather than overwrites: achievements are unioned, and the newest flashcard schedule wins.
 
@@ -36,7 +31,7 @@ Syncing merges rather than overwrites: achievements are unioned, and the newest 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 45 unit tests: algorithms + content integrity + worked-solution numbers
+npm test           # 46 unit tests: algorithms + content integrity + worked-solution numbers
 npm run build      # static site in dist/
 ```
 
@@ -51,6 +46,7 @@ The site uses hash routing and relative asset paths, so the same build works at 
 
 1. Write the lesson in `src/data/content/<id>.md`. Each `## Heading` becomes a trackable section. You can embed:
    - widgets: `{{widget:alignment preset="final"}}` (registry in `src/widgets/registry.ts`),
+   - mini-games: `{{game:id}}` (registry in `src/games/registry.ts`; the game's `module` must be this module),
    - videos: `{{yt:VIDEO_ID|Title}}`,
    - callouts: `:::tip Title` … `:::` (types: tip, bio, cs, warn, exam, sota),
    - math: `$inline$` and `$$display$$` (KaTeX).

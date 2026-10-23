@@ -62,6 +62,8 @@ Each step can only decrease distortion, so it converges, but to a **local** mini
 
 {{widget:kmeans}}
 
+{{game:lloyd-step}}
+
 **Limitations (slides):** may get stuck in local minima; depends on initialization; k must be chosen; assumes **spherical, similar-size** clusters; sensitive to outliers and noise; costly for huge data; Euclidean distances lose meaning in very high dimensions; no categorical data.
 
 :::exam Quiz 2: why does k-means mix genes from distinct pathways, and what to do?

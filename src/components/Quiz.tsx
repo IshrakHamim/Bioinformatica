@@ -72,7 +72,7 @@ export function Quiz({ questions, moduleKey, onFinish, title, shuffle = false }:
         return (
           <div key={q.id} className="q">
             <div style={{ fontWeight: 600 }}>
-              {i + 1}. <InlineMd text={q.q} /> {q.exam && <span className="pill warn" title="From a past quiz/exam">exam</span>}
+              {i + 1}. <InlineMd text={q.q} />
             </div>
             {q.type === 'mcq' &&
               q.options.map((o, oi) => (

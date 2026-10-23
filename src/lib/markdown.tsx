@@ -4,6 +4,8 @@ import 'katex/dist/katex.min.css';
 import { Fragment, useMemo, type ReactNode } from 'react';
 import { WIDGETS } from '../widgets/registry';
 import { YouTube } from '../components/YouTube';
+import { GameCard } from '../components/GameCard';
+import { GAME_BY_ID } from '../games/registry';
 
 const marked = new Marked();
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
@@ -47,7 +49,7 @@ function renderMd(src: string): string {
   return out.join('\n');
 }
 
-/** Markdown with embedded `{{widget:name key=value}}` and `{{yt:ID|Title}}` lines. */
+/** Markdown with embedded `{{widget:name key=value}}`, `{{game:id}}` and `{{yt:ID|Title}}` lines. */
 export function Markdown({ source }: { source: string }) {
   const parts = useMemo(() => {
     const chunks: ReactNode[] = [];
@@ -60,12 +62,17 @@ export function Markdown({ source }: { source: string }) {
     for (const line of source.split('\n')) {
       const w = line.match(/^\{\{widget:([\w-]+)(.*)\}\}\s*$/);
       const y = line.match(/^\{\{yt:([\w-]{11})\|(.*)\}\}\s*$/);
+      const g = line.match(/^\{\{game:([\w-]+)\}\}\s*$/);
       if (w) {
         flush();
         const props: Record<string, string> = {};
         for (const kv of w[2].matchAll(/(\w+)="([^"]*)"/g)) props[kv[1]] = kv[2];
         const W = WIDGETS[w[1]];
         chunks.push(W ? <W key={n++} {...props} /> : <div key={n++} className="callout warn">Unknown widget: {w[1]}</div>);
+      } else if (g) {
+        flush();
+        const G = GAME_BY_ID[g[1]];
+        chunks.push(G ? <GameCard key={n++} game={G} /> : <div key={n++} className="callout warn">Unknown game: {g[1]}</div>);
       } else if (y) {
         flush();
         chunks.push(<YouTube key={n++} id={y[1]} title={y[2]} />);

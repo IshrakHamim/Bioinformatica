@@ -48,6 +48,8 @@ Slide example (DNA matrix, d = −5): AAG vs AGC → best local alignment `AG/AG
 
 {{widget:alignment preset="finalLocal"}}
 
+{{game:align-duel}}
+
 :::exam Final Q1(b, c): local alignment of the same pair
 The maximum cell value is **6**, reached at F(5,4) and again at F(7,5). From F(5,4) the best local alignments are
 ```text

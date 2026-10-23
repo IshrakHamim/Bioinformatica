@@ -70,6 +70,8 @@ The skew decreases (reverse half-strand) until it reaches oriC and then increase
 
 {{widget:skew}}
 
+{{game:skew-hunter}}
+
 :::exam Worked mini-example (Quiz 1)
 Skew of `CATTCCGGA` after each prefix: C → −1, A → −1, T → −1, T → −1, C → **−2** (position 5), C → −3, G → −2, G → −1, A → −1.
 If Skew₁₀₀ = 1 and Skew₁₀₁ = 2, the skew went up by 1, so nucleotide 101 is **G**.
@@ -98,6 +100,8 @@ Combining everything (BA1J): maximize $\text{Count}_d(Text, P) + \text{Count}_d(
 - Eukaryotic chromosomes have thousands of origins and no single DnaA-box-like consensus. Finding them is an active research topic (using experimental data like OK-seq and ORC ChIP-seq, not sequence alone).
 - Statistical surprise depends on a background model. “Appears 3 times” is surprising for 9-mers in 500 nt, but not for 3-mers.
 :::
+
+{{game:complement-rush}}
 
 ## Summary
 

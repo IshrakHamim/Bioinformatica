@@ -86,6 +86,8 @@ Add **pseudocounts** (+1) so unseen events don't get probability 0, the same ide
 - **Viterbi** then labels each base as exon or intron by trading emission evidence against transition costs (a few intron-like bases inside an exon won't trigger a switch). Gene finders like **GENSCAN** are generalized HMMs of this kind.
 :::
 
+{{game:cpg-detective}}
+
 ## Beyond: profile HMMs and pair HMMs
 
 - **Profile HMMs** model a protein family's MSA with **match/insert/delete** states per column. **HMMER** (S. Eddy) searches databases with them, and **Pfam** stores profile HMMs for tens of thousands of families. They are far more sensitive than BLAST for distant homologs.

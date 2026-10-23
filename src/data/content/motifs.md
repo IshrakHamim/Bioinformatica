@@ -127,6 +127,8 @@ If upstream regions are, say, AT-rich, then profiles built from random starts ar
 
 **Other practical issues** (slide: “What is the value of k?”): k must be guessed or scanned (try several k); motifs may be absent in some sequences; there may be several motifs or several copies per sequence; and both strands should be searched (reverse complements). Tools like **MEME** (expectation-maximization) handle these, using statistical models closely related to what you've built here.
 
+{{game:motif-hunter}}
+
 ## Comparing the algorithms
 
 | Algorithm | Strategy | Guarantee | Cost |

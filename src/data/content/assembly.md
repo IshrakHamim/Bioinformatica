@@ -39,6 +39,8 @@ Now the genome is a walk that uses **every edge exactly once**: an **Eulerian pa
 
 {{widget:debruijn preset="mid"}}
 
+{{game:euler-trail}}
+
 :::cs Euler's theorem (directed version)
 A node is **balanced** if in-degree = out-degree. **Every balanced, strongly connected directed graph is Eulerian** (has an Eulerian cycle). A graph has an Eulerian **path** iff it is connected and balanced except for exactly two nodes: a start with out = in + 1 and an end with in = out + 1. Adding a temporary edge end → start makes it balanced, so find a cycle and then cut that edge.
 :::

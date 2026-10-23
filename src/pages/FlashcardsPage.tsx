@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MODULES } from '../data';
+import { MODULES, TRACKS } from '../data';
 import { FlashcardDeck, dueCards } from '../components/Flashcards';
 import { useProgress } from '../lib/progress';
 
@@ -7,7 +7,8 @@ export default function FlashcardsPage() {
   const p = useProgress();
   const [sel, setSel] = useState<string>('all');
   const all = useMemo(() => MODULES.flatMap((m) => m.flashcards.map((c) => ({ ...c, key: `${m.id}/${c.id}`, module: m.code }))), []);
-  const cards = sel === 'all' ? all : sel === 'mid' || sel === 'final' ? all.filter((c) => MODULES.find((m) => m.code === c.module)?.exam === sel) : all.filter((c) => c.key.startsWith(`${sel}/`));
+  const track = TRACKS.find((t) => `path:${t.id}` === sel);
+  const cards = sel === 'all' ? all : track ? all.filter((c) => track.modules.includes(c.key.split('/')[0])) : all.filter((c) => c.key.startsWith(`${sel}/`));
   return (
     <div>
       <h1>Flashcards</h1>
@@ -15,8 +16,7 @@ export default function FlashcardsPage() {
       <div className="row" style={{ marginBottom: 12 }}>
         <select value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Deck">
           <option value="all">All modules</option>
-          <option value="mid">Mid-term syllabus</option>
-          <option value="final">Final syllabus</option>
+          {TRACKS.filter((t) => t.modules.length).map((t) => <option key={t.id} value={`path:${t.id}`}>Path: {t.title}</option>)}
           {MODULES.map((m) => <option key={m.id} value={m.id}>{m.code} · {m.title}</option>)}
         </select>
       </div>

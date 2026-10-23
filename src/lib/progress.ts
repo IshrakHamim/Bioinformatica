@@ -17,13 +17,14 @@ export interface Progress {
   reviews: number;
   games: Record<string, number>; // game -> high score
   practice: Record<string, number>; // practice problem solved at
+  checkpoints: Record<string, number>; // learning path -> best checkpoint fraction (0..1)
   days: string[]; // YYYY-MM-DD with activity
   bonusXp: number;
   lastModule?: string;
   updatedAt: number;
 }
 
-const empty = (): Progress => ({
+export const emptyProgress = (): Progress => ({
   v: 1,
   sections: {},
   answered: {},
@@ -32,6 +33,7 @@ const empty = (): Progress => ({
   reviews: 0,
   games: {},
   practice: {},
+  checkpoints: {},
   days: [],
   bonusXp: 0,
   updatedAt: 0,
@@ -39,8 +41,8 @@ const empty = (): Progress => ({
 
 export const XP = { section: 20, question: 5, review: 1, practice: 25 };
 
-let user = 'guest';
-let state: Progress = empty();
+let user = 'learner';
+let state: Progress = emptyProgress();
 const listeners = new Set<() => void>();
 const key = () => `bioinformatica.progress.${user}`;
 let onChange: ((p: Progress) => void) | null = null;
@@ -60,10 +62,11 @@ function emit() {
 export function loadProgress(u: string) {
   user = u;
   try {
-    const raw = localStorage.getItem(key());
-    state = raw ? { ...empty(), ...(JSON.parse(raw) as Progress) } : empty();
+    // progress saved under the old admin login carries over
+    const raw = localStorage.getItem(key()) ?? localStorage.getItem('bioinformatica.progress.admin');
+    state = raw ? { ...emptyProgress(), ...(JSON.parse(raw) as Progress) } : emptyProgress();
   } catch {
-    state = empty();
+    state = emptyProgress();
   }
   emit();
 }
@@ -92,7 +95,7 @@ export function update(fn: (p: Progress) => void) {
 }
 
 export function replaceProgress(p: Progress) {
-  state = { ...empty(), ...p };
+  state = { ...emptyProgress(), ...p };
   persist();
   emit();
 }
@@ -126,6 +129,7 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
     answered: maxRec(a.answered, b.answered, Math.min),
     quizBest: maxRec(a.quizBest, b.quizBest, Math.max),
     practice: maxRec(a.practice, b.practice, Math.min),
+    checkpoints: maxRec(a.checkpoints ?? {}, b.checkpoints ?? {}, Math.max),
     games: maxRec(a.games, b.games, Math.max),
     cards,
     reviews: Math.max(a.reviews, b.reviews),

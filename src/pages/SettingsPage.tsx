@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../auth/auth';
-import { getProgress, mergeProgress, replaceProgress, type Progress } from '../lib/progress';
+import { emptyProgress, getProgress, mergeProgress, replaceProgress, type Progress } from '../lib/progress';
 import { getGistConfig, getSyncStatus, onSyncStatus, setGistConfig, startSync, syncNow } from '../lib/sync';
 
 function useTheme() {
@@ -24,7 +23,6 @@ function useTheme() {
 }
 
 export default function SettingsPage() {
-  const { session } = useAuth();
   const [status, setStatus] = useState(getSyncStatus());
   useEffect(() => onSyncStatus(setStatus), []);
   const [token, setToken] = useState(getGistConfig()?.token ?? '');
@@ -61,15 +59,15 @@ export default function SettingsPage() {
           {status.at && <span className="muted"> (last sync {new Date(status.at).toLocaleTimeString()})</span>}
         </p>
         <ul className="small">
-          <li><b>Deployed on Vercel with a Redis/KV store connected:</b> sync is automatic after login, with nothing to set up on each device.</li>
-          <li><b>Deployed on GitHub Pages (or no KV store):</b> paste a GitHub token with the <code>gist</code> scope below, once per device. Progress is saved to a private Gist in your GitHub account, and other devices with a token find the same Gist automatically.</li>
+          <li><b>This browser:</b> progress is saved automatically, with nothing to set up. (Accounts with server sync will come back once a Redis store is connected.)</li>
+          <li><b>GitHub Gist:</b> paste a GitHub token with the <code>gist</code> scope below, once per device. Progress is saved to a private Gist in your GitHub account, and other devices with a token find the same Gist automatically.</li>
           <li>Or use <b>Export/Import</b> to move a progress file between devices by hand.</li>
         </ul>
         <div className="row">
           <input type="password" placeholder="GitHub token (gist scope)" value={token} onChange={(e) => setToken(e.target.value)} style={{ minWidth: 280 }} aria-label="GitHub token" />
-          <button className="btn small primary" onClick={() => { setGistConfig(token ? { token } : null); if (session) startSync(session.token); }}>Save & connect</button>
+          <button className="btn small primary" onClick={() => { setGistConfig(token ? { token } : null); startSync(); }}>Save & connect</button>
           <button className="btn small" onClick={() => syncNow()} disabled={status.mode === 'local'}>Sync now</button>
-          {getGistConfig() && <button className="btn small danger" onClick={() => { setGistConfig(null); setToken(''); if (session) startSync(session.token); }}>Disconnect Gist</button>}
+          {getGistConfig() && <button className="btn small danger" onClick={() => { setGistConfig(null); setToken(''); startSync(); }}>Disconnect Gist</button>}
         </div>
         <p className="tiny muted">Create a token at github.com → Settings → Developer settings → Personal access tokens (classic) with only the “gist” scope. It is stored only in this browser.</p>
       </div>
@@ -92,11 +90,11 @@ export default function SettingsPage() {
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Danger zone</h3>
-        <button className="btn small danger" onClick={() => { if (confirm('Reset ALL progress on this device? Synced copies are merged back on next sync unless you also clear them.')) replaceProgress({ v: 1, sections: {}, answered: {}, quizBest: {}, cards: {}, reviews: 0, games: {}, practice: {}, days: [], bonusXp: 0, updatedAt: Date.now() }); }}>Reset progress</button>
+        <button className="btn small danger" onClick={() => { if (confirm('Reset ALL progress on this device? Synced copies are merged back on next sync unless you also clear them.')) replaceProgress({ ...emptyProgress(), updatedAt: Date.now() }); }}>Reset progress</button>
       </div>
 
       <div className="card small muted">
-        <b>About.</b> Bioinformatica turns the CSE443 (BRAC University) bioinformatics course into interactive lessons. Lesson text is original and paraphrased; it follows the course's textbooks (Compeau &amp; Pevzner; Gusfield) and the instructor's lecture topics. Algorithms in the widgets are implemented from scratch and unit-tested against textbook, handout and exam values. The login is a client-side gate for personal progress tracking, not a security boundary.
+        <b>About.</b> Bioinformatica turns the CSE443 (BRAC University) bioinformatics course into interactive lessons. Lesson text is original and paraphrased; it follows the course's textbooks (Compeau &amp; Pevzner; Gusfield) and the instructor's lecture topics. Algorithms in the widgets are implemented from scratch and unit-tested against textbook, handout and exam values.
       </div>
     </div>
   );

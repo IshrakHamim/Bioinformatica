@@ -103,6 +103,8 @@ A **reading frame** is where you start counting triplets. Each strand has 3 fram
 
 {{widget:central-dogma}}
 
+{{game:codon-quest}}
+
 {{yt:gG7uCskUOrA|From DNA to protein - 3D (yourgenome)}}
 
 ## Proteins: sequence → structure → function

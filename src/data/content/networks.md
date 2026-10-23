@@ -74,6 +74,8 @@ High-betweenness nodes are **bottlenecks** controlling information flow, which m
 **Graph K** (V–W, W–X, W–Y, X–Z): degree(W) = **3**; diameter **3**; closeness(W) = 4/5 = **0.8**; highest betweenness **W** (= 5).
 :::
 
+{{game:hub-hunter}}
+
 ## Clustering analysis: Girvan–Newman
 
 **Girvan–Newman** (a greedy divisive algorithm): edges *between* communities carry many shortest paths, so they have high **edge betweenness**.

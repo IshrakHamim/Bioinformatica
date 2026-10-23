@@ -51,6 +51,8 @@ $$D_{C_1,C_2} = \frac{\sum_{i\in C_1}\sum_{j\in C_2} D_{ij}}{|C_1|\,|C_2|}$$
 
 {{widget:upgma preset="final"}}
 
+{{game:tree-builder}}
+
 :::exam Final Q2(a): D(A,B) = 4, D(C,D) = 4, all other distances 6
 1. Minimum is 4 (tie between {A,B} and {C,D}; take A,B). Merge **(AB)** at height **2**. New distances: D(AB,C) = (6+6)/2 = 6, D(AB,D) = 6, and D(C,D) = 4 is unchanged.
 2. Minimum 4 → merge **(CD)** at height **2**. D(AB, CD) = (6+6+6+6)/4 = 6.

@@ -85,6 +85,8 @@ $$\text{MCC} = \frac{TP\cdot TN - FP\cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)
 
 {{widget:confusion}}
 
+{{game:metric-match}}
+
 **Sampling strategies:** train–test split; train–validation–test (tune hyperparameters on validation only); **k-fold cross-validation** (stratified, so each fold keeps class ratios); an independent test set from a different source is the gold standard.
 
 ## Step 7: deployment

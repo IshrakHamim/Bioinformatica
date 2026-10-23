@@ -35,6 +35,8 @@ In the slide example (P = `GTAGCGGCG`, T = `GTTATAGCTGATCGCGGCGTAGCGGCGAA`), ali
 
 {{widget:boyer-moore preset="mid"}}
 
+{{game:shift-sprint}}
+
 :::exam Mid exam 3(a): T = TACGACGTACGTAGACGTACG, P = ACGTAC
 | # | offset | compared (right→left) | mismatch | bad char | good suffix | shift |
 |---|---|---|---|---|---|---|
