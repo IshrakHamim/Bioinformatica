@@ -9,7 +9,16 @@ export default function GlossaryPage() {
     () => MODULES.flatMap((m) => m.flashcards.map((c) => ({ ...c, m }))).sort((a, b) => a.front.localeCompare(b.front)),
     [],
   );
-  const sections = useMemo(() => MODULES.flatMap((m) => sectionsOf(m).map((s) => ({ m, s, text: (s.title + ' ' + s.body).toLowerCase() }))), []);
+  const sections = useMemo(
+    () =>
+      MODULES.flatMap((m) =>
+        sectionsOf(m).map((s) => {
+          const body = s.body.replace(/^\{\{.*\}\}\s*$/gm, ''); // drop widget/video/refresher lines
+          return { m, s, body, text: (s.title + ' ' + body).toLowerCase() };
+        }),
+      ),
+    [],
+  );
   const needle = q.trim().toLowerCase();
   const hitsT = needle ? terms.filter((t) => (t.front + ' ' + t.back).toLowerCase().includes(needle)) : terms;
   const hitsS = needle.length > 1 ? sections.filter((x) => x.text.includes(needle)).slice(0, 30) : [];
@@ -26,10 +35,10 @@ export default function GlossaryPage() {
         <>
           <h2>Lesson sections ({hitsS.length})</h2>
           <div className="col">
-            {hitsS.map(({ m, s }) => (
-              <Link key={`${m.id}/${s.id}`} to={`/m/${m.id}?tab=learn`} className="card small" style={{ color: 'var(--text)' }}>
+            {hitsS.map(({ m, s, body }) => (
+              <Link key={`${m.id}/${s.id}`} to={`/m/${m.id}?tab=learn&s=${s.id}`} className="card small" style={{ color: 'var(--text)' }}>
                 <b>{m.code} › {s.title}</b>
-                <div className="muted">{snippet(s.body)}</div>
+                <div className="muted">{snippet(body)}</div>
               </Link>
             ))}
           </div>

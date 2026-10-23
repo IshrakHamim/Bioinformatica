@@ -1,6 +1,10 @@
-**Problem:** a sequencer gives us billions of short reads from a person; we already have a **reference genome** of the species. For each read, find where it came from (**read mapping / alignment**). Differences between read and reference are then either sequencing errors or real **variants**, the start of variant calling. The slides for this lecture are adapted from Ben Langmead's *Algorithms for DNA Sequencing* course, and Boyer-Moore follows Gusfield Ch. 2.
+**Problem:** a sequencer gives us billions of short reads from one person, and we already have a **reference genome** for the species. For each read, find where in the reference it came from. This is **read mapping** (or read alignment). Once reads are placed, the differences between reads and reference are either sequencing errors or real **variants**, and telling them apart is variant calling. This lesson's slides are adapted from Ben Langmead's *Algorithms for DNA Sequencing* course, and Boyer-Moore follows Gusfield, Chapter 2.
+
+**Why not just assemble?** Assembly (previous lessons) rebuilds a genome from scratch, which is hard. If a good reference already exists, and two humans are about 99.9% identical, it is far easier to **match each read against the reference**. That turns the problem into **string matching**: find where a short pattern P (the read, length m) occurs in a huge text T (the genome, length n).
 
 ## Naive exact matching
+
+The simplest approach: try every possible starting position (**alignment**) of P in T, and compare characters until one mismatches.
 
 ```python
 def naive(p, t):
@@ -16,86 +20,160 @@ def naive(p, t):
     return occurrences
 ```
 
-- Alignments tried: always $n - m + 1$ (n = |T|, m = |P|).
-- Character comparisons: at least $n - m + 1$, at most $m(n - m + 1)$, so worst case $O(nm)$.
-- For one 100-bp read against a 3-Gb genome that's ~3×10⁹ alignments; for a billion reads it is hopeless. We need either **smarter scanning** (Boyer-Moore) or **preprocessing the genome** (an index).
+**How much work is it?**
+- The number of alignments tried is always $n - m + 1$.
+- Each alignment compares at least 1 character and at most m, so character comparisons range from $n - m + 1$ (every alignment fails immediately) to $m(n - m + 1)$ (e.g., P = `AAAA` in T = `AAAAAAAA…`, where nearly every alignment matches far). The worst case is $O(nm)$.
+
+For one 100-base read against a 3-billion-base genome, that is about 3 × 10⁹ alignments. For a billion reads it's hopeless. Two ways forward:
+1. **Scan smarter:** skip alignments that cannot match (Boyer-Moore).
+2. **Preprocess the genome once** so that each read can be looked up quickly (an index).
+
+{{ref:algo#big-o-what-scales-to-a-genome}}
 
 ## Boyer-Moore: learn from mismatches to skip alignments
 
-Try **alignments left→right**, but **compare characters right→left**. When a mismatch occurs, use what we learned to skip alignments that cannot possibly match.
+This video introduces the two Boyer-Moore rules with clear pictures. Watch it first; the text below then makes the rules precise.
 
-**Bad character rule.** On a mismatch at pattern offset i against text character c, shift P right until (a) the mismatch becomes a match (the rightmost c in P left of i lines up with it), or (b) P moves completely past c (if c is not in P[0..i−1]):
-$$\text{shift}_{bc} = i - (\text{rightmost index } j < i \text{ with } P[j] = c), \quad \text{or } i+1 \text{ if none}$$
+{{video:4Xyhb72LCX4}}
 
-**Good suffix rule.** Let t = the suffix of P already matched. Shift until (a) another occurrence of t in P lines up with t in T (preferring one preceded by a different character than the mismatching one), or (b) a prefix of P matches a suffix of t, or (c) P moves past t.
+**Key idea.** Try alignments **left to right**, as before, but compare characters **right to left** within each alignment. When a mismatch happens, use what you've just learned about the text to **skip alignments that cannot possibly match**.
 
-**Put together:** shift by the **maximum** of the two rules (never less than 1). After a full match, shift so the longest proper prefix of P that is also a suffix lines up.
+### Bad character rule
 
-In the slide example (P = `GTAGCGGCG`, T = `GTTATAGCTGATCGCGGCGTAGCGGCGAA`), alignments tried are offsets 0, 7, 10, 18: **15 alignments skipped**, and 11 characters of T are never examined.
+When P[i] mismatches text character c, shift P to the right until either
+- **(a)** the mismatch becomes a match: the **rightmost occurrence of c in P to the left of position i** lines up with c, or
+- **(b)** P moves completely past c, if c does not occur in P[0..i−1].
+
+$$\text{shift}_{bc} = i - (\text{rightmost index } j < i \text{ with } P[j] = c), \quad \text{or } i+1 \text{ if there is none}$$
+
+**Worked example** (Langmead's slides): P = `CCTTTTGC`, T = `GCTTCTGCTACCTTTTGCGCGCGCGCGGAA`.
+
+1. **Offset 0.** Comparing from the right: C=C, G=G, T=T, then P[4] = T vs T[4] = **C**: mismatch. The rightmost C in P left of position 4 is P[1], so shift by 4 − 1 = **3** (case a).
+2. **Offset 3.** P[7] = C matches, then P[6] = G vs T[9] = **A**: mismatch. P has no A at all, so shift by 6 + 1 = **7**, moving P past the A (case b).
+3. **Offset 10.** All 8 characters match: an occurrence at offset 10.
+
+Naive matching would have tried 11 alignments to get there; Boyer-Moore tried 3.
+
+### Good suffix rule
+
+Let t be the **suffix of P that already matched** before the mismatch. Shift P until
+- **(a)** another occurrence of t in P lines up with t in the text (preferring one preceded by a different character from the one that just mismatched, since the same character would mismatch again),
+- **(b)** a **prefix** of P matches a suffix of t, or
+- **(c)** P moves past t entirely.
+
+Intuition: we know the text there reads t, so any useful alignment must put something matching t (or the end of t) in that spot.
+
+### Putting them together
+
+At each mismatch, compute both shifts and take the **maximum** (never less than 1). Both rules are safe: they never skip an alignment that could match. After a full match, shift so that the longest proper prefix of P that is also a suffix of P lines up.
+
+In the lecture's example (P = `GTAGCGGCG`, T = `GTTATAGCTGATCGCGGCGTAGCGGCGAA`), the alignments tried are offsets 0, 7, 10 and 18: **15 alignments skipped**, and 11 characters of T are never examined at all.
 
 {{widget:boyer-moore preset="mid"}}
 
 {{game:shift-sprint}}
 
-:::exam Mid exam 3(a): T = TACGACGTACGTAGACGTACG, P = ACGTAC
+:::example A full Boyer-Moore trace: T = TACGACGTACGTAGACGTACG, P = ACGTAC
 | # | offset | compared (right→left) | mismatch | bad char | good suffix | shift |
 |---|---|---|---|---|---|---|
-| 1 | 0 | C✓ A✓ T✗ | P[3]=T vs T[3]=G | rightmost G left of 3 is P[2] → **1** | matched “AC” reoccurs at P[0..1] → **4** | **4** |
-| 2 | 4 | all 6 match | none, occurrence at **4** | n/a | match rule: “AC” is both prefix and suffix → **4** | **4** |
+| 1 | 0 | C✓ A✓ T✗ | P[3]=T vs T[3]=G | rightmost G left of 3 is P[2] → **1** | matched "AC" reoccurs at P[0..1] → **4** | **4** |
+| 2 | 4 | all 6 match | none: occurrence at **4** | n/a | after a match: "AC" is both prefix and suffix → **4** | **4** |
 | 3 | 8 | C✗ | P[5]=C vs T[13]=G | G at P[2] → **3** | nothing matched → 0 | **3** |
 | 4 | 11 | C✗ | P[5]=C vs T[16]=G | **3** | 0 | **3** |
-| 5 | 14 | all 6 match | none, occurrence at **14** | n/a | **4** | 4 → offset 18 > 15, stop |
+| 5 | 14 | all 6 match | none: occurrence at **14** | n/a | **4** | 4 → offset 18 > 15, stop |
 
-Boyer-Moore: **5 alignments, 17 character comparisons**. Naive: **16 alignments, 35 comparisons** (with early exit). Savings: 11 of 16 alignments skipped (≈69%) and about half the comparisons. Both find the matches at offsets 4 and 14 (0-based).
+Boyer-Moore: **5 alignments, 17 character comparisons**. Naive: **16 alignments, 35 comparisons** (stopping at the first mismatch). Boyer-Moore skipped 11 of 16 alignments (about 69%) and about half the comparisons. Both find the matches at offsets 4 and 14 (0-based).
 :::
 
-Preprocessing P takes O(m·|Σ|) for the bad-character table and O(m) for good suffix (Z-algorithm). Typical running time is **sublinear** in n: many characters of T are never looked at. The longer the pattern, the bigger the skips. Boyer-Moore powers tools like GNU `grep`.
+**Cost.** Preprocessing P takes O(m·|Σ|) for the bad-character table (for each position and each letter, where is the rightmost occurrence to the left?) and O(m) for the good-suffix table (using the Z-algorithm). Matching is often **sublinear** in practice: many characters of T are never even looked at. **The longer the pattern, the bigger the skips.** Boyer-Moore powers tools like GNU `grep`.
 
-{{yt:Wj606N0IAsw|ADS1: Boyer-Moore: putting it all together (Ben Langmead)}}
+This second video puts both rules together on the exact example from the slides, a good recap:
+
+{{video:Wj606N0IAsw}}
 
 ## Indexing the genome
 
-Preprocess **T** once, then answer every read quickly, like a book's index (key terms → page numbers) or a grocery store's aisles.
+Boyer-Moore still scans the whole genome for every read. With billions of reads, it's better to **preprocess T once** and then answer each read quickly, the way a book's index maps key terms to page numbers so you don't reread the book.
 
-**k-mer index:** for every offset i, store k-mer T[i:i+k] → i. Query: look up the read's first k-mer, get candidate offsets (**index hits**), then **verify** the rest of the read at each candidate.
+{{video:2UsmUgJtwAI}}
 
-- An index hit is not necessarily a match: the remaining characters must be checked.
-- Two implementations from the slides:
-  - **Sorted list (multimap) + binary search:** sort (k-mer, offset) pairs; find all entries with key = query by binary search, O(log n) per lookup. In Python, `bisect.bisect_left` finds the first.
-  - **Hash table:** k-mer → list of offsets; O(1) expected lookup; uses more memory than a compact sorted array.
-- **Specificity:** small k → huge lists of hits per k-mer (many verifications); large k → fewer, more specific hits.
+**A k-mer index.** For every offset i in T, store the pair (k-mer T[i:i+k], i). To look up a read:
+1. Take the read's first k-mer and look it up in the index. Each stored offset is an **index hit**.
+2. An index hit is only a candidate: the first k letters match, but the rest might not. **Verify** the rest of the read at each candidate offset.
+
+**Example.** T = `CGTGCGTGCTT`, k = 5: the 5-mers are CGTGC (offsets 0 and 4), GTGCG (1), TGCGT (2), GCGTG (3), GTGCT (5), TGCTT (6). Looking up P = `GCGTGCTT` uses its first 5-mer GCGTG → hit at offset 3. Verifying the remaining letters of P (CTT) against T[8..10] (CTT) confirms a match at offset 3. A query starting with CGTGC would get two hits (0 and 4), and each would need verifying.
+
+**Two implementations from the slides:**
+- **Sorted list + binary search:** sort all (k-mer, offset) pairs by k-mer, and find all entries for a query by binary search, O(log n) per lookup. In Python, `bisect.bisect_left` finds the first matching entry. Compact in memory.
+- **Hash table:** k-mer → list of offsets. O(1) expected lookup, but more memory.
+
+**Choosing k (specificity).** Small k gives many hits per k-mer (in a 3-billion-base genome, a given 5-mer occurs millions of times), so verification dominates. Larger k gives fewer, more specific hits, but a read error inside the k-mer means the true location is missed.
+
+{{ref:algo#hash-maps-counting-things-fast|algo#sorting-binary-search-and-indexes}}
 
 {{widget:kmer-index}}
 
 ## Smaller indexes: variants of index search
 
-The human genome has ~3×10⁹ k-mer positions, so a full index is big. Ways to shrink it (Mid exam 3(b)):
+A full k-mer index of the human genome stores about 3 × 10⁹ entries, which is large. This video covers the variations below.
 
-1. **Subsample offsets:** index only k-mers at even offsets, or every 3rd offset. The index shrinks to ~1/2 or ~1/3. A query must now try k-mers at **several phases** of the read (offset 0 and 1 for “every 2nd”; 0, 1, 2 for “every 3rd”) so that at least one aligns with an indexed position. Cost: **more lookups per read and more verifications**.
-2. **Subsequence (spaced-seed) index:** index characters at selected positions (e.g., offsets 0, 2, 4) instead of contiguous k-mers. *A substring is also a subsequence, but a subsequence need not be a substring.* Spaced seeds tolerate mismatches at the skipped positions, so they improve sensitivity for approximate matching at similar size.
-3. **Compressed full-text indexes** (beyond the slides): **suffix arrays** and the **Burrows–Wheeler Transform / FM-index**. The FM-index of the human genome fits in a few GB and supports exact substring search in O(m) time independent of genome size. It is the engine of **Bowtie/Bowtie2** and **BWA**.
-4. **Minimizers:** store only the smallest k-mer (by a hash order) in each window of w consecutive k-mers. This shrinks the index by roughly 2/(w+1) while guaranteeing that matching windows share a seed (**minimap2** for long reads).
+{{video:My_sw_Rf_4U}}
 
-**Effect on search efficiency:** a smaller index means fewer memory accesses and better cache use, but each query does more work: multiple seeds/phases, more candidate verifications, and possibly lower sensitivity for short reads with errors. It is a classic **space–time trade-off**.
+Ways to make the index smaller, and what each costs:
+
+1. **Subsample offsets.** Index only the k-mers at even offsets, or every third offset. The index shrinks to about 1/2 or 1/3. But now the read's first k-mer may start at an offset that was not indexed. So a query must try k-mers at **several phases** of the read: offsets 0 and 1 for "every 2nd", or 0, 1 and 2 for "every 3rd". At least one of them lines up with an indexed position. Cost: **more lookups per read and more verifications**.
+2. **Subsequence (spaced-seed) index.** Index characters at selected positions (e.g., offsets 0, 2, 4 of each window) instead of a contiguous k-mer. Remember: *a substring is also a subsequence, but a subsequence need not be a substring.* Spaced seeds **tolerate mismatches at the skipped positions**, so they find more approximate matches at a similar index size.
+3. **Compressed full-text indexes** (beyond the slides): **suffix arrays** and the **Burrows–Wheeler transform / FM-index**. The FM-index of the human genome fits in a few gigabytes and finds any exact substring in O(m) time, independent of genome size. It is the engine of **Bowtie/Bowtie2** and **BWA**.
+4. **Minimizers.** In each window of w consecutive k-mers, store only the smallest one (according to a hash order). Two overlapping sequences that share a window are guaranteed to pick the same minimizer, so matches aren't lost, and the index shrinks to roughly 2/(w+1) of its full size. This is how **minimap2** indexes for long reads.
+
+**Effect on search efficiency.** A smaller index means fewer memory accesses and better cache use. But each query does more work: multiple seeds or phases, more candidates to verify, and possibly lower sensitivity for short reads with errors. It's a classic **space–time trade-off**.
+
+This talk shows the genome indexes actually used in research tools:
+
+{{video:bfnFgcB_Nlw}}
 
 ## Approximate matching: Hamming, edit distance, pigeonhole
 
-Reads differ from the reference because of **sequencing errors** and **natural variation** (SNPs, indels).
+Exact matching isn't enough. A read differs from the reference because of **sequencing errors** and **natural variation** (SNPs, insertions, deletions). This video explains why, and introduces the two distances we use.
 
-- **Hamming distance:** number of substitutions (equal lengths only). Naive approximate matching with a Hamming threshold just counts mismatches and stops after too many. It cannot handle insertions or deletions.
-- **Edit (Levenshtein) distance:** minimum number of substitutions, insertions and deletions turning X into Y. Computed by **dynamic programming** in O(|X||Y|), which is the bridge to Sequence Alignment (Module 10).
+{{video:MCvHeW13DsE}}
+
+- **Hamming distance:** the number of substitutions between two strings of equal length. Approximate matching with a Hamming threshold is a small change to the naive algorithm: count mismatches and give up on an alignment when the count exceeds the threshold. But it **cannot** handle insertions or deletions: one inserted base shifts everything after it and makes every later position look like a mismatch.
+- **Edit (Levenshtein) distance:** the minimum number of **substitutions, insertions and deletions** that turn X into Y. For example, `GCAT` → `GAT` is one deletion, so the edit distance is 1, even though their lengths differ. It is computed by **dynamic programming** in O(|X|·|Y|) time, which is the bridge to the Sequence Alignment lesson.
+
+{{ref:math#distances-and-similarity|algo#dynamic-programming}}
 
 {{widget:edit-distance}}
 
-**Pigeonhole principle.** Split P into k + 1 non-overlapping pieces. If P occurs with ≤ k edits, then **at least one piece occurs with 0 edits** (k edits cannot touch k + 1 pieces). Algorithm: find each piece *exactly* (fast: index or Boyer-Moore), then **verify** the full P around each hit, allowing ≤ k mismatches/edits.
+**The pigeonhole principle** makes approximate matching fast by reducing it to exact matching.
+
+Split P into **k + 1 non-overlapping pieces**. If P occurs in T with at most k edits, then **at least one piece occurs with no edits at all**: k edits can damage at most k pieces, so one of the k + 1 pieces must be untouched (k pigeons can't fill k + 1 holes).
+
+**Algorithm:**
+1. Find every exact occurrence of every piece, quickly (with an index or Boyer-Moore).
+2. Around each hit, **verify** the whole of P, allowing up to k mismatches or edits.
+
+**Example.** To find a 50-base read with up to 2 mismatches, split it into 3 pieces of about 17 bases. Any true occurrence contains at least one of the pieces exactly. Exact 17-mer matches are rare in a genome, so there are few candidates to verify.
+
+{{video:duatMINEGgE}}
 
 {{widget:pigeonhole}}
 
-From the slides' benchmark (a 50-nt string from an Alu repeat searched in human chromosome 1, hg19): Boyer-Moore exact took 32.5 M character comparisons and ~67 s (336 matches); Boyer-Moore + pigeonhole with ≤ 1 mismatch took 107 M comparisons and ~209 s (1,045 matches); with ≤ 2 mismatches, 171 M and ~328 s (2,798 matches). Allowing errors multiplies both the work and the number of hits.
+**What allowing errors costs** (the slides' benchmark: a 50-base string from an Alu repeat searched in human chromosome 1, hg19):
+
+| Search | Character comparisons | Time | Matches |
+|---|---|---|---|
+| Boyer-Moore, exact | 32.5 M | ~67 s | 336 |
+| Boyer-Moore + pigeonhole, ≤ 1 mismatch | 107 M | ~209 s | 1,045 |
+| Boyer-Moore + pigeonhole, ≤ 2 mismatches | 171 M | ~328 s | 2,798 |
+
+Allowing errors multiplies both the work and the number of hits, and a repeat like Alu matches in many places, which is why mappers report how *confident* they are in each placement.
 
 :::sota What real read mappers do
-1. **Seed:** exact matches of short substrings via FM-index (Bowtie2, BWA-MEM) or minimizers (minimap2). That is the pigeonhole idea at scale.
-2. **Extend:** dynamic-programming alignment (Smith-Waterman with affine gaps, SIMD-accelerated) around the seed.
-3. **Report** in **SAM/BAM** format: position, CIGAR string (matches/insertions/deletions) and **mapping quality** (MAPQ, Phred-scaled confidence that the position is correct; low for repeats).
-4. Downstream: sort, mark duplicates, **variant calling** (GATK, DeepVariant, which is a CNN that calls variants from read pileup images).
+1. **Seed:** find exact matches of short substrings using an FM-index (Bowtie2, BWA-MEM) or minimizers (minimap2). That is the pigeonhole idea at scale.
+2. **Extend:** run dynamic-programming alignment (Smith–Waterman with affine gaps, accelerated with SIMD instructions) around each seed.
+3. **Report** in **SAM/BAM** format: the position, a **CIGAR** string describing matches, insertions and deletions, and the **mapping quality** (MAPQ: a Phred-scaled confidence that the position is correct, which is low for reads from repeats).
+4. **Downstream:** sort, mark PCR duplicates, and **call variants** (GATK, or DeepVariant, a convolutional neural network that classifies images of read pileups).
 :::
+
+{{ref:tools#file-formats|tools#typical-analysis-workflows}}

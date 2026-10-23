@@ -1,42 +1,61 @@
-Every algorithm in this course eats data produced by a **sequencer**. To trust (and debug) your analyses you must know how reads are made, what errors look like, and how quality is encoded.
+Every algorithm in this course eats data produced by a **sequencer**. To trust your analyses, and to debug them when they look wrong, you need to know how reads are made, what errors look like, and how a sequencer tells you how confident it is in each letter. This lesson tells the story from the Human Genome Project to today's long-read machines.
+
+The lecture deck is adapted from Ben Langmead's course on DNA sequencing. His short introduction is good context before you start:
+
+{{video:hpb-mH-yjLc}}
 
 ## The Human Genome Project and the race
 
-- **Proposed in 1987** by the U.S. Department of Energy (not NIH!) as biology's “Manhattan project”; NIH's genome office opened in 1989 and the project formally launched in **1990** as a joint NIH–DOE effort with international partners. The Sanger Centre (UK) was the largest center outside the US.
-- Goal: sequence ~3 billion bp at about **$1 per base by 2005**.
-- **1995:** TIGR (Craig Venter, Hamilton Smith) sequenced the first complete bacterial genome, *Haemophilus influenzae* (~1.8 Mb, ~1,740 genes), by **whole-genome shotgun** sequencing.
-- **1998:** Venter founded **Celera Genomics** (for-profit) with new Applied Biosystems capillary machines. **2000:** Celera published the fruit fly genome, showing shotgun assembly works at large scale.
-- **2001:** two draft human genomes were published back to back: the public consortium in *Nature* and Celera in *Science*. The essentially finished sequence followed in 2003. The last ~8% (centromeres, telomeres, segmental duplications) waited until the **T2T** genome (2022).
-- Gene count estimates kept falling, from ~100,000 to today's ~20,000 protein-coding genes.
+- **Proposed in 1987** by the U.S. Department of Energy (not the NIH!) as biology's "Manhattan Project". NIH opened its genome office in 1989, and the project formally launched in **1990** as a joint NIH–DOE effort with international partners. The Sanger Centre in the UK was the largest centre outside the US.
+- **Goal:** sequence about 3 billion base pairs at roughly **$1 per base, by 2005**.
+- **The strategy debate.** The public project first mapped the genome into large ordered pieces and sequenced each piece. Others argued for **whole-genome shotgun** sequencing: break the *entire* genome into random fragments, sequence them all, and let a computer assemble them (the Assembly lesson). Critics thought shotgun assembly would fail on repeats.
+- **1995:** TIGR (Craig Venter, Hamilton Smith) sequenced the first complete bacterial genome, *Haemophilus influenzae* (about 1.8 Mb, ~1,740 genes), by whole-genome shotgun.
+- **1998:** Venter founded **Celera Genomics**, a company using new Applied Biosystems capillary sequencers. **2000:** Celera and academic partners published the fruit fly genome, showing shotgun assembly works on a large animal genome.
+- **2001:** two draft human genomes were published back to back: the public consortium's in *Nature* and Celera's in *Science*. The "essentially finished" sequence followed in 2003. The last ~8% (centromeres, telomeres, large duplicated regions) had to wait for the **T2T** genome in 2022.
+- Gene count estimates kept falling during the project, from about 100,000 to today's ~20,000 protein-coding genes.
 
 {{widget:timeline}}
 
 ## From Sanger to massively parallel sequencing
 
-**Sanger (first-generation, 1977):** chain-terminating dideoxynucleotides produce fragments ending at each base; capillary electrophoresis reads ~800–1,000 bp per run with high accuracy, but one fragment per capillary. That is slow and expensive.
+**Sanger sequencing (first generation, 1977).** DNA polymerase copies a template in the presence of normal nucleotides plus a small amount of **dideoxynucleotides**, modified nucleotides that stop the chain when they are added. This produces copies that end at every possible position, each tagged by the identity of its last base. Sorting the fragments by length (capillary electrophoresis) reads the sequence one position at a time. Sanger reads are long (about 800–1,000 bases) and accurate, but each capillary reads **one fragment** per run, so it is slow and expensive at genome scale. It is still the gold standard for checking a single PCR product.
 
-**Second generation (“next-generation”, ~2005+):** sequence **billions of fragments in parallel** on a glass flow cell. Cost per genome fell from ~$100 million (2001) to under $1,000, far faster than Moore's law. The dominant chemistry is Illumina's **sequencing by synthesis (SBS)**, the subject of the lecture's Lego animation:
+**Second generation ("next-generation sequencing", about 2005 onwards).** The key idea is **massive parallelism**: sequence **hundreds of millions to billions of fragments at once** on a glass slide called a **flow cell**. The cost of a human genome fell from about $100 million (2001) to under $1,000, much faster than Moore's law. The dominant chemistry is Illumina's **sequencing by synthesis (SBS)**, which the lecture explains with a Lego animation.
 
-1. **Library prep:** fragment DNA, ligate adapters.
-2. **Cluster generation:** each fragment attaches to the slide and is amplified in place into a **cluster** of identical copies (*bridge amplification*), giving billions of templates.
-3. **Cycle:** add all four nucleotides, each with a different **fluorescent dye** and a **reversible terminator** (“speed bump”), so every strand extends by **exactly one base**.
-4. **Image:** laser excites dyes; a camera photographs the whole slide. Each cluster's color = the base just added.
-5. **Cleave** dye and terminator; repeat for 100–300 cycles. The color sequence of a cluster is its **read**.
+Watch Illumina's own animation first; the steps below name each stage you'll see.
+
+{{video:fCd6B5HRaZ8}}
+
+1. **Library preparation.** Fragment the DNA (for example into ~300–500-base pieces) and attach short known **adapter** sequences to both ends.
+2. **Cluster generation.** Fragments bind to complementary adapters fixed on the flow cell. Each is copied in place over and over (**bridge amplification**), forming a **cluster** of about a thousand identical copies. A single molecule's signal is too faint to see; a cluster's is bright enough.
+3. **Sequencing cycle.** Add all four nucleotides at once. Each kind carries a different **fluorescent dye** and a **reversible terminator**, a chemical "speed bump" that stops the polymerase after adding **exactly one base**.
+4. **Imaging.** A laser excites the dyes and a camera photographs the whole flow cell. Each cluster glows in the colour of the base it just added.
+5. **Cleave and repeat.** Chemically remove the dye and the terminator, and repeat for 100–300 cycles. The series of colours a cluster shows over time is its **read**.
+
+The base pairing you learned in the Introduction is what makes this work: the base added in each cycle is the complement of the template base.
+
+{{ref:intro#dna-the-four-letter-molecule}}
 
 {{widget:sbs}}
 
-{{yt:fCd6B5HRaZ8|Overview of Illumina Sequencing by Synthesis Workflow (Illumina)}}
-
 ## Where errors come from
 
-Within a cluster, the copies should stay in lock-step. But occasionally a strand **fails to incorporate** a base in a cycle (falls behind, *phasing*) or a terminator fails and it adds **two** bases (jumps ahead, *pre-phasing*). Out-of-sync copies emit the *wrong* color. The fraction grows each cycle, so:
+Within one cluster, all the copies should stay perfectly in step: after cycle 50, every copy should have just added base 50. But chemistry is imperfect:
 
-- the cluster's light becomes a **mixture** of colors,
-- base calls become **uncertain**, and
-- quality **decreases toward the end of reads**, which is why reads are trimmed.
+- Sometimes a strand **fails to add a base** in a cycle, so it falls one step behind (**phasing**).
+- Sometimes a terminator fails and a strand adds **two bases**, so it jumps ahead (**pre-phasing**).
 
-**Base quality.** The sequencer estimates p = probability the call is wrong (in the slides: 3 of 9 light units are non-orange, so p = 1/3) and reports a **Phred quality**
+Out-of-step copies glow with the *wrong* colour for the current position. The fraction of out-of-step copies grows with every cycle, so:
+
+- the cluster's light becomes a **mixture** of colours,
+- the base call becomes **less certain**, and
+- quality **declines toward the end of reads**. That is why reads are often **trimmed** at their 3′ end before analysis.
+
+**Base quality.** For every base it calls, the sequencer estimates p, the **probability that the call is wrong**. (In the slides' Lego example, 3 of 9 light units are the wrong colour, so p = 1/3.) It reports this as a **Phred quality score**:
+
 $$Q = -10 \log_{10} p, \qquad p = 10^{-Q/10}$$
+
+Each +10 in Q means **10 times fewer errors**:
 
 | Q | error probability | accuracy |
 |---|---|---|
@@ -45,55 +64,76 @@ $$Q = -10 \log_{10} p, \qquad p = 10^{-Q/10}$$
 | 30 | 1 in 1,000 | 99.9% |
 | 40 | 1 in 10,000 | 99.99% |
 
-Slide example: p = 1/3 → Q = −10 log₁₀(1/3) ≈ **4.77**.
+**Worked examples.**
+- p = 1/3: Q = −10 log₁₀(1/3) ≈ **4.77**, a very unreliable call.
+- Q = 25: p = 10⁻²·⁵ ≈ 0.0032, about 1 error in 316.
+- **Expected errors in a read:** add the error probabilities. A 100-base read with every base at Q30 has 100 × 0.001 = **0.1** expected errors; the same read at Q20 has 1.
+
+{{ref:math#logarithms-likelihood-and-log-odds}}
 
 ## FASTQ files and Phred+33
 
-Reads are stored as **FASTQ**, four lines per read:
+Reads and their qualities are stored in **FASTQ** files, four lines per read:
 
 ```text
-@ERR194146.1 HSQ1008:141:D0CC8ACXX:3:1308:20201:36071/1     ← name
+@ERR194146.1 HSQ1008:141:D0CC8ACXX:3:1308:20201:36071/1     ← read name
 ACATCTGGTTCCTACTTCAGGGCCATAAAGCCTAAATAGCCCACACGTTCCCCTTAAAT  ← sequence
-+                                                            ← (ignore)
-?@@FFBFFDDHHBCEAFGEGIIDHGH@GDHHHGEHID@C?GGDG@FHIGGH@FHBEG:G  ← qualities
++                                                            ← separator (ignore)
+?@@FFBFFDDHHBCEAFGEGIIDHGH@GDHHHGEHID@C?GGDG@FHIGGH@FHBEG:G  ← one quality character per base
 ```
 
-Each quality character encodes Q in **Phred+33**: round Q, add 33, and take the ASCII character. `I` = 73 − 33 = **Q40**; `#` = Q2.
+**Phred+33 encoding.** To store each quality as a single character, round Q to an integer, **add 33**, and take the ASCII character with that code. (33 is the first printable ASCII character, `!`, so Q = 0 is `!`.) To decode, take the character's ASCII code and subtract 33:
+
+- `I` has ASCII code 73, so Q = 73 − 33 = **40** (error 1 in 10,000).
+- `5` has code 53, so Q = **20**.
+- `#` has code 35, so Q = **2** (Illumina uses this for "don't trust this base").
 
 ```python
 def QtoPhred33(Q):   return chr(Q + 33)
 def phred33ToQ(ch):  return ord(ch) - 33
+
+[phred33ToQ(c) for c in "?@@FF"]   # [30, 31, 31, 37, 37]
 ```
+
+{{ref:tools#file-formats|tools#reading-fasta-and-fastq-in-python}}
 
 {{widget:phred}}
 
 {{game:phred-flash}}
 
 :::cs From the course notebook (Sequence_reads.ipynb)
-The notebook reads the φX174 genome from FASTA (skip lines starting with `>`), parses a FASTQ file (lines 2 and 4 of every 4), builds a **histogram of base qualities**, plots **GC content by read position** and **mean quality by position**, then maps reads with naive exact matching. Real reads match only partially until you (1) use just the first 30 bases (fewer errors) and (2) also search the **reverse complement**, because reads come from both strands.
+The notebook reads the φX174 genome from a FASTA file (skipping lines that start with `>`), parses a FASTQ file (lines 2 and 4 of every group of 4), builds a **histogram of base qualities**, plots **GC content by position in the read** and **mean quality by position**, and then maps reads to the genome by naive exact matching. At first only some reads match. They match much better once you (1) use only the first 30 bases of each read, where errors are rare, and (2) also search for the **reverse complement**, because reads come from both strands.
 :::
 
 ## Third-generation (long-read) sequencing
 
-| Technology | How | Read length | Accuracy (raw / consensus) |
+Short reads are cheap and accurate, but 150 bases cannot span a 6,000-base repeat. **Third-generation** technologies read single DNA molecules, producing reads thousands to millions of bases long.
+
+| Technology | How it works | Read length | Accuracy |
 |---|---|---|---|
-| Illumina SBS | cyclic reversible terminators | 50–300 bp | ~99.9% |
-| PacBio HiFi | single DNA polymerase watched in real time; circular template read many times | ~15–25 kb | > 99.9% (HiFi) |
-| Oxford Nanopore | DNA ratchets through a protein pore; current changes decoded by neural networks | kb to > 1 Mb | ~99% simplex with recent chemistry |
+| Illumina SBS | cyclic reversible terminators on amplified clusters | 50–300 bp | ~99.9% |
+| PacBio HiFi | a single DNA polymerase is watched in real time as it copies a circular template; going round the circle many times gives a consensus | ~15–25 kb | > 99.9% (HiFi consensus) |
+| Oxford Nanopore | a single DNA strand ratchets through a protein pore in a membrane; each group of bases in the pore changes the electrical current, and neural networks decode the current trace into bases | kb to > 1 Mb | ~99% for a single read with recent chemistry |
 
-Long reads span repeats (assembly!), structural variants and full-length RNA isoforms. Nanopore also reads **base modifications** (e.g., methylation) directly and runs on a USB-sized device.
+**Why long reads matter.**
+- They span repeats, which makes assembly far easier (the T2T human genome relied on them).
+- They capture **structural variants** (large insertions, deletions, inversions) that short reads miss.
+- They read **full-length RNA transcripts**, revealing isoforms directly.
+- Nanopore reads **base modifications** such as methylation directly from the current signal, and a nanopore sequencer can be the size of a USB stick.
 
-{{yt:bS3NiFLwPqE|Oxford Nanopore ONT Sequencing (RobEdwards)}}
+This video explains how nanopore sequencing reads a molecule as it passes through the pore:
 
-## Beyond genome sequencing: what “-seq” measures
+{{video:bS3NiFLwPqE}}
 
-The same machines read anything you can turn into DNA:
+## Beyond genome sequencing: what "-seq" measures
 
-- **WGS / WES:** whole genome / exome → variants.
-- **RNA-seq:** reverse-transcribe RNA to cDNA → expression (Modules 7–8). **scRNA-seq** adds cell barcodes.
-- **ChIP-seq:** DNA bound by a protein (TF, histone mark).
-- **ATAC-seq / DNase-seq:** open chromatin.
-- **Bisulfite-seq:** DNA methylation.
-- **Metagenomics:** all DNA in an environmental or gut sample.
+A sequencer reads DNA, but almost any biological question can be turned into DNA to read. That's why so many experiments end in "-seq":
 
-Next module: given billions of reads and a reference genome, **where does each read come from?** (read mapping).
+- **WGS / WES:** whole genome / whole exome (just the exons) → find **variants**.
+- **RNA-seq:** convert RNA into DNA (cDNA) with reverse transcriptase, then sequence → measure **gene expression** (Gene Expression lessons). **scRNA-seq** adds a barcode per cell.
+- **ChIP-seq:** pull down the DNA bound by a specific protein (a transcription factor or histone mark) → find **binding sites**.
+- **ATAC-seq / DNase-seq:** sequence DNA that is accessible, not tightly packed → find **open chromatin** and active regulatory regions.
+- **Bisulfite sequencing:** chemical treatment converts unmethylated C to U, so methylated and unmethylated C read differently → map **DNA methylation**.
+- **Metagenomics:** sequence all DNA in an environmental or gut sample → which **species** and genes are present.
+
+Each produces FASTQ files of reads. The next lesson answers the first question in almost every pipeline: given billions of reads and a reference genome, **where does each read come from?**

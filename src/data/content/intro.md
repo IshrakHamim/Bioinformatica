@@ -1,143 +1,197 @@
-You are a computer scientist. Your new "programming language" has 4 letters, its programs are about 3 billion characters long, and they run on hardware (cells) that copies, edits and executes them. This module gives you enough molecular biology to read every later algorithm in the right biological context.
+You are a computer scientist. Your new "programming language" has 4 letters, its programs are about 3 billion characters long, and they run on hardware (cells) that copies, edits and executes them. This module teaches you enough molecular biology to understand every later algorithm in its biological context. No biology background is assumed.
 
-:::tip How to use this module
-Each section has a **Mark complete** button (+20 XP). The widgets are live: change the inputs. Finish with the Quiz and Flashcards tabs.
+:::tip How to use the lessons
+Read each section, try the widgets (they are live: change the inputs), and press **Mark complete** when you're done. Videos sit where they help most: some are best watched *before* a section, some *after* as a recap, and the text tells you which. When a step uses math or an algorithm you're unsure of, the **🧱 Stuck? Quick refresher** chips open the right foundation section inline.
 :::
+
+Before diving into the biology, this short talk by a computational genomics professor explains why sequencing and string algorithms became so central to biology. It is a good frame for the whole course.
+
+{{video:hpb-mH-yjLc}}
 
 ## Bioinformatics vs computational biology
 
-- **Bioinformatics**: collecting, storing, classifying and analyzing biological data with computers, especially genomic and molecular data. Think *tools, databases, pipelines*.
-- **Computational biology**: using mathematical models, algorithms and simulation to *understand biological systems*. Think *questions and models*.
+- **Bioinformatics** is collecting, storing, organizing and analyzing biological data with computers, especially DNA, RNA and protein sequences. Think *tools, databases, pipelines*.
+- **Computational biology** uses mathematical models, algorithms and simulation to *understand how biological systems work*. Think *questions and models*.
 
-In practice the two overlap. The course you are revising (CSE443) follows the algorithmic tradition of **Compeau & Pevzner, *Bioinformatics Algorithms: An Active Learning Approach***: every topic starts with a biological question, turns it into a precise computational problem (Input → Output), then designs algorithms for it.
+In practice the two overlap, and most researchers do some of both. The course you are studying (CSE443) follows the algorithmic tradition of **Compeau & Pevzner, *Bioinformatics Algorithms: An Active Learning Approach***. Every topic starts with a biological question, turns it into a precise computational problem, and then designs algorithms for it.
 
 :::cs The recurring recipe
-1. **Biology:** “Where does replication start?”
-2. **Problem:** *Input:* a DNA string *Genome*. *Output:* the position of *oriC*.
-3. **Algorithm:** count k-mers, compute skew, …
-4. **Reality check:** what assumptions did we make, and how do real data break them?
+1. **Biology:** "Where does DNA replication start in a bacterium?"
+2. **Problem:** *Input:* a DNA string *Genome*. *Output:* the position of the replication origin.
+3. **Algorithm:** count short words, compute the GC skew, …
+4. **Reality check:** what did we assume, and how do real data break it?
 :::
 
-The course outline (from the first lecture): introduction → sequence alignment & DP → HMMs → genome assembly, read mapping, variant calling, de Bruijn graphs → gene expression analysis (clustering, visualization, dimensionality reduction) → single-cell RNA-seq & spatial transcriptomics → phylogenetic trees → biological networks → gene ontology & pathways → evolutionary & comparative genomics → representation/contrastive learning → protein structure, proteomics and generative AI.
+{{ref:algo#reading-a-problem-input-output}}
+
+**What the course covers** (from the first lecture): finding hidden messages in DNA → genome assembly → sequencing technology and read mapping → gene expression analysis (clustering, dimensionality reduction) → sequence alignment → phylogenetic trees → hidden Markov models → machine learning and neural networks → biological networks. The *Frontiers* track then covers what the field does today: AlphaFold, protein design and genomic language models.
 
 ## Genome, genes and why we differ
 
-- A **genome** is all the DNA of an organism. A human cell holds two copies (one from each biological parent) of ~3.1 billion base pairs, about **6 billion letters**, roughly 2 m of DNA if stretched out.
-- The DNA is split into **chromosomes** (humans: 23 pairs). When a cell divides, they condense into tightly packed bundles.
-- A **gene** is a DNA segment carrying instructions for a product, usually a protein. Humans have roughly 20,000 protein-coding genes, and protein-coding sequence is only ~1–2% of the genome. The rest includes regulatory elements, non-coding RNA genes, repeats and much we still do not understand.
-- Any two humans are **≈99.9% identical** in DNA sequence. The ~0.1% (millions of positions) are **genetic variants**. A single changed letter can alter a protein's shape, how much is made, or when and where it is made. That affects traits (eye colour) and disease risk or drug response.
+**Cells.** Every living thing is made of cells. **Bacteria** (prokaryotes) are single cells without a nucleus; their DNA is usually one circular chromosome floating in the cell. **Eukaryotes** (yeast, plants, animals) keep their DNA inside a **nucleus**, as several linear chromosomes.
+
+**Genome.** A **genome** is all the DNA of an organism. A human cell holds two copies of a ~3.1 billion base-pair genome, one inherited from each biological parent, so about **6 billion letters** per cell. Stretched out, the DNA of one cell would be roughly 2 m long; it is packed by wrapping around proteins (histones) into **chromatin**.
+
+**Chromosomes.** The genome is split into **chromosomes**: humans have 23 pairs. Before a cell divides, each chromosome condenses into the compact X-shaped form seen in textbook pictures.
+
+**Genes.** A **gene** is a stretch of DNA carrying the instructions for a product, usually a protein. Humans have about **20,000 protein-coding genes**, and protein-coding sequence makes up only about **1–2%** of the genome. The rest includes regulatory switches, genes for non-coding RNAs, repeated sequences, and much whose function is still unknown.
+
+**Variation.** Any two humans are about **99.9% identical** in DNA sequence. The remaining ~0.1% is still millions of positions, called **genetic variants**. A single changed letter can alter a protein's shape, or how much of it is made, or when and where. Variants contribute to traits (eye colour, height), disease risk and drug response. Finding them is one of bioinformatics' main jobs (variant calling).
 
 :::bio Genotype → phenotype
-**Genotype** = the DNA you carry. **Phenotype** = observable traits. The genome is not destiny: epigenetic marks (e.g., DNA methylation), environment and plain randomness all shape the phenotype. Every cell in your body has (almost) the same genome, yet a neuron and a skin cell are very different. Same program, different execution: *gene regulation* decides which genes run.
+**Genotype** is the DNA you carry. **Phenotype** is what you observe: traits, disease, behaviour. The genome is not destiny: chemical marks on DNA (epigenetics, e.g., DNA methylation), environment and chance all shape the phenotype. Almost every cell in your body has the same genome, yet a neuron and a skin cell look and behave completely differently. Same program, different execution. **Gene regulation** decides which genes are switched on in which cell.
 :::
 
-**Genetic disease.** A change in DNA can be *inherited* (present from birth, runs in families) or *acquired* during life (e.g., mutations in a tissue leading to cancer: cells dividing without control). Most variants are harmless; some destroy or alter a protein.
+**Genetic disease.** A DNA change can be **inherited** (present from birth, runs in families, e.g., cystic fibrosis) or **acquired** during life. Cancer is the classic acquired case: mutations accumulate in a tissue until cells divide without control. Most variants are harmless; a few break or change a protein.
 
-**Model organisms.** Budding yeast *Saccharomyces cerevisiae* (~12 Mb, ~6,000 genes, 16 chromosomes) was the first eukaryote fully sequenced (1996). Its small genome makes it ideal for learning how genes work.
+**Model organisms.** Biologists learn general rules from simpler organisms. Budding yeast *Saccharomyces cerevisiae* (~12 million bp, ~6,000 genes, 16 chromosomes) was the first eukaryote whose genome was fully sequenced (1996). Bacteria like *E. coli*, the fruit fly and the mouse are other workhorses.
 
 ## DNA: the four-letter molecule
 
-DNA is a polymer of **nucleotides**. Each nucleotide = phosphate + deoxyribose sugar + one of four **bases**:
+DNA (deoxyribonucleic acid) is a long chain, a **polymer**, of building blocks called **nucleotides**. Each nucleotide has three parts: a **phosphate**, a sugar called **deoxyribose**, and one of four **bases**. The sugar and phosphate form the backbone; the bases are the "letters".
 
-| Base | Type | Rings | Pairs with | H-bonds |
+| Base | Type | Rings | Pairs with | Hydrogen bonds |
 |---|---|---|---|---|
 | **A** adenine | purine | 2 | T | 2 |
 | **G** guanine | purine | 2 | C | 3 |
 | **C** cytosine | pyrimidine | 1 | G | 3 |
 | **T** thymine | pyrimidine | 1 | A | 2 |
 
-- The two strands of the **double helix** are **complementary**: A↔T, C↔G. If you know one strand, you know the other.
-- G–C pairs (3 H-bonds) hold more strongly than A–T pairs (2). AT-rich regions are easier to pull apart, which matters for where replication starts.
-- Strands are **directional**: one end is 5′ (five-prime), the other 3′, named after carbon atoms of the sugar. The two strands run **antiparallel**. By convention we always write a strand 5′→3′.
+**The double helix.** DNA usually exists as two strands wound around each other. The bases of one strand pair with the bases of the other by **hydrogen bonds**: A always with T, C always with G. The two strands are therefore **complementary**: knowing one strand tells you the other exactly. This is why DNA can be copied, and why sequencing one strand is enough.
 
-So to read the *other* strand 5′→3′, you **reverse** the string and **complement** each base. This is the **reverse complement**, the most-used one-liner in bioinformatics:
+G–C pairs have three hydrogen bonds, A–T pairs only two, so **GC-rich DNA holds together more tightly** and AT-rich regions are easier to pull apart. Replication origins and promoters tend to be AT-rich for that reason.
+
+**Direction.** Each strand has a direction. One end is called **5′** ("five prime") and the other **3′**, after the numbering of carbon atoms in the sugar. The two strands of a helix run in **opposite** directions (they are **antiparallel**). By convention we always write a strand from 5′ to 3′.
+
+```text
+5′-ATGATCAAG-3′     top strand, read left to right
+3′-TACTAGTTC-5′     bottom strand: complementary, running the other way
+```
+
+**Reverse complement.** To write the bottom strand in the standard 5′→3′ direction, read it right to left: `CTTGATCAT`. In code, that is: **reverse** the string and **complement** each letter. It is the single most-used operation in bioinformatics, because a read, a binding site or a gene can be on either strand.
 
 $$\text{revcomp}(\texttt{ATGATCAAG}) = \texttt{CTTGATCAT}$$
 
+```python
+def reverse_complement(s):
+    comp = {"A": "T", "T": "A", "C": "G", "G": "C"}
+    return "".join(comp[b] for b in reversed(s))
+```
+
+Build a strand below and watch its complement and reverse complement update.
+
 {{widget:dna-builder}}
 
-**Upstream vs downstream.** Relative to a gene, sequence on the 5′ side is *upstream* (where promoters usually sit); sequence on the 3′ side is *downstream*. Genes can sit on either strand.
+**Upstream and downstream.** Relative to a gene, sequence on its 5′ side is **upstream** (where the switches that turn it on usually sit) and sequence on the 3′ side is **downstream**. Genes can be on either strand, so "upstream" always means relative to the gene's own direction.
 
 ## Replication: copying the genome
 
-Watson & Crick (1953) ended their paper with: *“It has not escaped our notice that the specific pairing we have postulated immediately suggests a possible copying mechanism for the genetic material.”*
+Watson and Crick ended their 1953 paper on the double helix with a famous understatement: *"It has not escaped our notice that the specific pairing we have postulated immediately suggests a possible copying mechanism for the genetic material."* Because each strand determines the other, each strand can serve as a template for a new partner.
 
-1. The two strands separate (the weak H-bonds make this possible) starting at the **origin of replication** (*oriC*).
-2. Each old strand is a **template**. **DNA polymerase** reads the template 3′→5′ and builds the new strand **5′→3′** only.
-3. Because of that one-way rule, one new strand (the **leading** strand) is built continuously. The other (**lagging**) strand is built backwards in short **Okazaki fragments**, later joined by **DNA ligase**.
-4. Result: two double helices, each with one old and one new strand (*semi-conservative* replication).
+Watch this short animation first; the steps below then name what you saw.
 
-{{yt:TNKWgcFPHqw|DNA replication - 3D (yourgenome)}}
+{{video:TNKWgcFPHqw}}
 
-The next module turns this biology into an algorithm: the asymmetry between leading and lagging strands leaves a statistical fingerprint (the **GC skew**) that reveals where oriC is.
+1. **Unwinding.** The two strands separate, starting at a specific place called the **origin of replication** (in bacteria, **oriC**). Separation creates a Y-shaped **replication fork** that moves along the DNA.
+2. **Templates.** Each old strand is a template. The enzyme **DNA polymerase** walks along a template and adds the complementary nucleotide at each position.
+3. **The one-way rule.** DNA polymerase can only build a new strand in the **5′→3′** direction (reading the template 3′→5′). One new strand, the **leading strand**, points the same way the fork moves, so it is built continuously.
+4. **The lagging strand.** The other new strand points the opposite way. It is built **backwards in short pieces** called **Okazaki fragments** (about 1,000–2,000 bases in bacteria), each started as the fork opens more DNA. The enzyme **DNA ligase** then joins the fragments.
+5. **Result.** Two double helices, each with one old and one new strand. This is called **semi-conservative** replication.
+
+**Why this matters for the course.** The lagging strand spends more time single-stranded, and single-stranded DNA mutates differently. Over evolutionary time that leaves a measurable imbalance between G and C on the two halves of a bacterial chromosome, called the **GC skew**. The next lesson turns that into an algorithm that finds oriC.
 
 ## Transcription: DNA → RNA
 
-**Transcription** copies a gene into RNA.
+DNA stays in the nucleus as the master copy. To use a gene, the cell makes a working copy in **RNA** (ribonucleic acid). This is **transcription**.
 
-- **RNA polymerase** is recruited to the **transcription start site (TSS)** by regulatory proteins binding the **promoter**. It reads the template strand 3′→5′ and builds RNA 5′→3′.
-- RNA uses **U (uracil)** instead of T, contains **ribose** (DNA's deoxyribose lacks the 2′ oxygen) and is usually **single-stranded**.
-- In eukaryotes the pre-mRNA is processed *after transcription* (post-transcriptional processing; the lecture slide says “post-translational”, a slip):
-  - **Splicing** removes **introns** and joins **exons** (the parts that remain in the mRNA). Alternative splicing lets one gene make several *isoforms*.
-  - A **5′ cap** (modified guanine) is added, and a **poly(A) tail** (many adenines) at the 3′ end.
+**How it works.**
+- Proteins called **transcription factors** bind short signals in the **promoter**, the region just upstream of a gene, and recruit **RNA polymerase** to the **transcription start site (TSS)**.
+- RNA polymerase reads one DNA strand, the **template strand**, and builds a complementary RNA, 5′→3′.
+- The RNA therefore has the same sequence as the *other* DNA strand, the **coding strand**, except that **T is replaced by U**. That's why gene sequences are written as the coding strand.
 
-Types of RNA you should know:
+**RNA vs DNA.** RNA uses the base **U (uracil)** instead of T, its sugar is **ribose** (deoxyribose is ribose missing one oxygen atom, hence "deoxy"), and it is usually **single-stranded**, so it can fold back on itself into shapes.
+
+**Processing in eukaryotes.** The first RNA copy (pre-mRNA) is edited before it leaves the nucleus. This happens after transcription. (The lecture slide calls it "post-translational", which is a slip: the correct term is post-transcriptional.)
+- **Splicing** cuts out **introns** and joins the **exons** (the parts that remain). Human genes are mostly intron: exons can be a small fraction of a gene's length.
+- **Alternative splicing** includes different subsets of exons, so one gene can produce several versions of a protein (**isoforms**).
+- A **5′ cap** (a modified G) is added at the front, and a **poly(A) tail** (a run of A's) at the end. Both protect the RNA and help it get translated.
+
+**Kinds of RNA you should know:**
 
 | RNA | Job |
 |---|---|
-| **mRNA** | messenger: carries the protein recipe |
-| **tRNA** | transfer: its 3-base *anticodon* pairs with a codon, and it carries the matching amino acid |
-| **rRNA** | ribosomal: core (and catalytic heart) of the ribosome |
-| **snRNA** | small nuclear: splicing machinery |
-| miRNA, lncRNA … | regulation (beyond the slides, but everywhere in modern papers) |
+| **mRNA** (messenger) | carries a protein's recipe to the ribosome |
+| **tRNA** (transfer) | adapter: its 3-base **anticodon** pairs with a codon, and it carries the matching amino acid |
+| **rRNA** (ribosomal) | the structural and catalytic core of the ribosome |
+| **snRNA** (small nuclear) | part of the splicing machinery |
+| miRNA, lncRNA, … | regulate other genes (common in modern research) |
 
 ## Translation: RNA → protein and the genetic code
 
-The **ribosome** reads mRNA in non-overlapping triplets called **codons**. There are $4^3 = 64$ codons for 20 amino acids, so the code is *redundant* (degenerate): most amino acids have several codons.
+The **ribosome** reads an mRNA and builds a protein. It reads the mRNA in non-overlapping groups of three bases called **codons**, and each codon specifies one **amino acid** (or "stop").
 
-- **AUG** = start codon (also codes methionine, M).
-- **UAA, UAG, UGA** = stop codons.
+**Counting codons.** With 4 bases and 3 positions there are $4^3 = 64$ codons, but only 20 amino acids. So the code is **redundant** (also called *degenerate*): most amino acids have several codons. For example, GCU, GCC, GCA and GCG all mean alanine.
+
+- **AUG** is the **start codon**; it also codes methionine (M), so most proteins begin with M.
+- **UAA, UAG, UGA** are **stop codons**: they end the protein.
 - 61 sense codons + 3 stops = 64.
 
-A **reading frame** is where you start counting triplets. Each strand has 3 frames, so DNA has **6 possible reading frames**. Shift by one base and you get a completely different protein. An *open reading frame (ORF)* runs from a start codon to a stop codon.
+**Worked example.** The mRNA `AUG GCC UUU UAA` translates to **M A F** then stop (methionine, alanine, phenylalanine).
+
+**Reading frames.** The same string gives a different protein depending on where you start counting triplets. Take the DNA `ATGGCCTTTTAA`:
+
+| Frame | Codons | Protein |
+|---|---|---|
+| start at base 1 | ATG GCC TTT TAA | M A F (stop) |
+| start at base 2 | TGG CCT TTT | W P F |
+| start at base 3 | GGC CTT TTA | G L L |
+
+Each strand has 3 frames, and there are 2 strands, so a DNA sequence has **6 possible reading frames**. An **open reading frame (ORF)** runs from a start codon to the next in-frame stop codon. Long ORFs are a first clue that a region codes for a protein. That idea is the start of gene finding.
 
 {{widget:central-dogma}}
 
 {{game:codon-quest}}
 
-{{yt:gG7uCskUOrA|From DNA to protein - 3D (yourgenome)}}
+This animation shows transcription and translation together. Watch it now as a recap of the last two sections.
+
+{{video:gG7uCskUOrA}}
 
 ## Proteins: sequence → structure → function
 
-Proteins do most of the cell's work: enzymes (catalysis), structure, transport (hemoglobin), immune defense (antibodies), signals and receptors, muscle contraction.
+Proteins do most of the work in a cell. They are **enzymes** that catalyse chemical reactions, **structural** fibres, **transporters** (hemoglobin carries oxygen), **antibodies**, **signals and receptors**, and **motors** for muscle contraction.
 
-A protein is a chain of amino acids, each with different size, charge, polarity and acidity. The chain folds:
+A protein is a chain of amino acids. The 20 amino acids differ in their side chains: some are large, some small, some charged, some water-repelling (**hydrophobic**). The chain folds into a specific 3D shape, driven largely by hydrophobic side chains hiding inside away from water. Biologists describe the structure in four levels:
 
-1. **Primary** structure: the amino-acid sequence.
-2. **Secondary**: local patterns, **α-helices** and **β-sheets**, held by backbone hydrogen bonds.
-3. **Tertiary**: the full 3D fold of one chain.
-4. **Quaternary**: several chains assembled (hemoglobin = 2α + 2β).
+1. **Primary:** the amino-acid sequence itself, written as a string over 20 letters (e.g., `MKTAYIAK…`).
+2. **Secondary:** local repeating shapes held by hydrogen bonds along the backbone, mainly **α-helices** (spirals) and **β-sheets** (side-by-side strands).
+3. **Tertiary:** the complete 3D fold of one chain.
+4. **Quaternary:** several chains assembled together. Hemoglobin is four chains (2 α + 2 β).
 
-**Anfinsen's principle:** the sequence determines the structure, and structure determines function. Predicting structure from sequence was a 50-year grand challenge, essentially solved for single chains by **AlphaFold 2** (2020) and recognised by the 2024 Nobel Prize in Chemistry. See the *Frontiers* track.
+{{video:hok2hyED9go}}
+
+**Anfinsen's principle:** for many proteins the amino-acid sequence alone determines the folded structure, and the structure determines the function. Predicting structure from sequence was a 50-year grand challenge. **AlphaFold 2** (2020) essentially solved it for single protein chains, which earned the **2024 Nobel Prize in Chemistry** (see the *Frontiers* track).
 
 :::cs Why this matters to you
-- *Similar sequence → similar structure → similar function.* This is the justification for **sequence alignment**: if a new gene aligns well to a known one, it probably does something similar.
-- Proteins are just strings over a 20-letter alphabet, so string algorithms and language models apply directly.
+- *Similar sequence → similar structure → similar function.* This is why **sequence alignment** is so useful: if a new gene aligns well to a well-studied one, it probably does something similar.
+- Proteins are just strings over a 20-letter alphabet, and DNA is a string over 4. String algorithms, probabilistic models and language models all apply directly.
 :::
 
 ## Gene regulation: when and how much
 
-Not all genes are on all the time. **Gene regulation** controls timing, place and amount of expression.
+Not every gene is active all the time. A liver cell needs different proteins from a neuron, and a bacterium needs different enzymes depending on its food. **Gene regulation** controls **when**, **where** and **how much** each gene is expressed.
 
-- **Promoters** (just upstream of genes) and **enhancers** (can be far away) contain short **regulatory motifs**: binding sites for **transcription factors (TFs)**.
-- A TF typically controls many genes that share its motif. Co-regulated genes often share function. This links Module 3 (finding motifs) with Modules 7–8 (genes with similar expression profiles).
-- Regulation forms **networks** with feedback loops (e.g., the plant circadian clock: TOC1 activates LHY/CCA1, which repress TOC1). Module 15 studies such networks.
+- **Promoters** (just upstream of a gene) and **enhancers** (sometimes thousands of bases away) contain short **regulatory motifs**, typically 6–20 bases long. These are binding sites for **transcription factors (TFs)**.
+- When a TF binds, it helps (an *activator*) or blocks (a *repressor*) RNA polymerase.
+- One TF usually controls **many genes** that share its motif. Genes switched on together tend to work together, so finding a shared motif in a set of genes tells you something about their function. That connects the *Regulatory Motifs* lesson (find the motif) with the *Gene Expression* lessons (find genes that behave alike).
+- Regulation forms **networks** with feedback. The plant circadian clock is a classic example: the protein TOC1 activates the genes LHY and CCA1, whose proteins in turn repress TOC1, which creates a daily oscillation. The *Biological Networks* lesson studies such systems.
 
-:::sota The central dogma, as a data pipeline
-DNA (genome sequencing, variant calling) → RNA (RNA-seq: expression, splicing) → protein (mass-spec proteomics, AlphaFold structures) → interactions (networks). Each arrow is a research field, and each has its own “-omics”.
+:::sota The central dogma as a data pipeline
+DNA (genome sequencing, variant calling) → RNA (RNA-seq: which genes are on, and how they are spliced) → protein (mass-spectrometry proteomics, AlphaFold structures) → interactions (networks). Each arrow is a research field with its own "-omics" and its own data.
 :::
 
 ## Where to practice
 
-- **Rosalind** (the problem-solving platform used by the course): every major algorithm in this site has a Rosalind problem. Start with the *Bioinformatics Textbook Track*: BA1A (pattern count), BA1C (reverse complement)…
-- The lecture notebook *Sequence_reads.ipynb* walks through Python strings, reverse complement, reading a genome from FASTA, parsing FASTQ and Phred qualities, and naive exact matching of real reads to the φX174 genome. It is mirrored in the Read Mapping module.
+- **Rosalind** is the problem-solving platform the course uses. Every major algorithm on this site links its Rosalind problem under **Further reading**. Start with the *Bioinformatics Textbook Track*: BA1A (count a pattern), BA1C (reverse complement), and so on.
+- The lecture notebook *Sequence_reads.ipynb* walks through Python strings, reverse complement, reading a genome from a FASTA file, parsing FASTQ and Phred qualities, and exact matching of real reads against the φX174 virus genome. The Sequencing and Read Mapping lessons follow it.
+
+{{ref:tools#file-formats|tools#reading-fasta-and-fastq-in-python|tools#databases-you-will-use}}

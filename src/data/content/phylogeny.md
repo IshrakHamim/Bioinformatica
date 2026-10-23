@@ -1,96 +1,158 @@
-**Biological question:** how are species, genes, or virus strains related by descent, and where did an outbreak come from? This module follows Compeau & Pevzner Vol. 2, Ch. 7 (the lecture deck plus Phillip Compeau's 2024 *Evolutionary Trees* slides).
+**Biological question:** how are species, genes or virus strains related by descent, and where did an outbreak come from? A **phylogenetic tree** answers both: it is a hypothesis about the history of a group of sequences. This lesson follows Compeau & Pevzner Vol. 2, Ch. 7 (the lecture deck plus Phillip Compeau's 2024 *Evolutionary Trees* slides).
 
 ## Motivation: tracing outbreaks
 
-**SARS (2003):** a doctor from Guangdong checked into room 911 of Hong Kong's Metropole Hotel. Guests he infected carried the virus to Hanoi and Toronto. Where did SARS come from? Comparing viral genomes with coronaviruses from animals pointed to bats, with **civets** as an intermediate host.
+**SARS (2003).** A doctor from Guangdong province checked into room 911 of Hong Kong's Metropole Hotel. Guests he infected carried the virus on to Hanoi and Toronto. Where did SARS come from? Comparing the viral genome with coronaviruses sampled from animals pointed to **bats** as the source, with **civets** as an intermediate host that passed it to humans.
 
-**Why viruses mutate fast:** coronaviruses, influenza and HIV are **RNA viruses**, and RNA replication is error-prone. That is why the flu shot changes yearly and why HIV has many subtypes. It is also why their genomes are perfect for reconstructing transmission trees: there are many differences to compare. The same methods traced SARS-CoV-2 variants and HIV's origin in chimpanzee SIV.
+**Why viruses are ideal for this.** Coronaviruses, influenza and HIV are **RNA viruses**, and RNA replication is error-prone, so they mutate fast. That's why the flu shot changes every year and why HIV has many subtypes. It also means that viral genomes collected even weeks apart differ in a few positions, which is exactly the information needed to reconstruct who infected whom. The same methods traced SARS-CoV-2 variants and HIV's origin in chimpanzee SIV.
 
-:::bio Two computational questions
-1. **Distance-based:** given a matrix of pairwise evolutionary distances, build a tree that fits it.
-2. **Character-based:** given aligned sequences (characters) at the leaves, infer the tree *and* the ancestral sequences (parsimony, maximum likelihood).
+Before the formal definitions, this short video shows how to read a tree and the basic logic of building one:
+
+{{video:09eD4A_HxVQ}}
+
+:::bio Two computational approaches
+1. **Distance-based:** first compress the data into a matrix of pairwise evolutionary distances, then build a tree that fits the matrix.
+2. **Character-based:** work directly on the aligned sequences (each column is a "character"), inferring the tree *and* the ancestral sequences (parsimony, maximum likelihood).
 :::
 
 ## Tree vocabulary
 
-- **Leaves** (degree 1) = present-day species. **Internal nodes** = unknown ancestors (speciation events).
-- A leaf's single neighbor is its **parent**; the edge to it is a **limb**.
-- **Rooted tree:** a designated root = the common ancestor; edges point away from it (time flows outward).
-- **Unrooted tree:** relationships only, no direction of time. Many methods produce unrooted trees; an **outgroup** (a known distant species) is used to root them.
+- **Leaves** (degree 1) are present-day species or sequences. **Internal nodes** are their unknown ancestors; each represents a split (a speciation event, or a transmission).
+- A leaf's single neighbour is its **parent**, and the edge joining them is a **limb**.
+- **Edge lengths** represent amount of evolution, for example the number of mutations.
+- **Rooted tree:** one node is designated the **root**, the common ancestor of everything, and time flows from the root outward.
+- **Unrooted tree:** shows relationships only, with no direction of time. Many methods produce unrooted trees. To root one, include an **outgroup**, a species known to be more distant than all the others; the root goes on the edge leading to it.
+
+{{ref:algo#trees-and-recursion}}
 
 ## Distance matrices and additivity
 
-A **distance matrix** D must be **symmetric** ($D_{ij} = D_{ji}$), **non-negative**, and satisfy the **triangle inequality** $D_{ik} \le D_{ij} + D_{jk}$. (The slide prints this as $D_{ij} + D_{jk} \le D_{ik}$; the correct direction is the one above.)
+A **distance matrix** D gives a distance $D_{ij}$ for every pair of leaves. It must be **symmetric** ($D_{ij} = D_{ji}$), **non-negative**, zero on the diagonal, and satisfy the **triangle inequality** $D_{ik} \le D_{ij} + D_{jk}$. (The slide prints this as $D_{ij} + D_{jk} \le D_{ik}$; the correct direction is the one above: going through j can't be shorter than going directly.)
 
-Distances can come from a multiple alignment (e.g., number of differing columns between two rows), corrected for multiple substitutions.
+**Where distances come from.** Typically from a multiple sequence alignment: count the columns in which two rows differ, then correct for multiple substitutions at the same site (which hide earlier changes).
 
-A tree **fits** D if the path length between every pair of leaves equals $D_{ij}$. D is **additive** if some tree fits it. **Not every matrix is additive** (four-point condition: for any four leaves, of the three pairwise sums $D_{ij}+D_{kl}$, $D_{ik}+D_{jl}$, $D_{il}+D_{jk}$, the two largest must be equal).
+{{ref:math#distances-and-similarity|alignment#multiple-sequence-alignment}}
+
+**Fitting a tree.** In a tree with edge lengths, the distance between two leaves is the **sum of edge lengths on the path** between them. A tree **fits** D if that path length equals $D_{ij}$ for every pair. D is **additive** if some tree fits it.
+
+**Not every matrix is additive.** The **four-point condition** tests it: for every four leaves i, j, k, l, compute the three sums $D_{ij}+D_{kl}$, $D_{ik}+D_{jl}$, $D_{il}+D_{jk}$; the two largest must be equal. (In a tree, two of the three pairings use the central path twice and are equal, and the third uses it zero times and is smaller.)
+
+**Example.** For leaves i, j, k, l with
+$$D = \begin{pmatrix} 0 & 13 & 21 & 22 \\ 13 & 0 & 12 & 13 \\ 21 & 12 & 0 & 13 \\ 22 & 13 & 13 & 0 \end{pmatrix}$$
+the three sums are $13 + 13 = 26$, $21 + 13 = 34$ and $22 + 12 = 34$. The two largest are equal, so D is additive. We'll reconstruct its tree below.
 
 ## Neighbors, limb lengths and AdditivePhylogeny
 
-**A first idea** (slides): take the **minimum** $D_{ij}$, assume i and j are **neighbors**, replace them by their parent m with
+**A first idea** (slides): take the **smallest** $D_{ij}$, assume leaves i and j are **neighbours** (they share a parent m), replace them by m with
 $$D_{km} = \frac{D_{ik} + D_{jk} - D_{ij}}{2}$$
-and recurse. **Pitfall:** the closest pair is **not always** a pair of neighbors. A fast-evolving neighbor can be far even though it is adjacent (this is what neighbor joining fixes).
+and repeat on the smaller matrix. (The formula: the path from k to i and the path from k to j both pass through m, so their sum counts k–m twice plus i–m and j–m, which together are $D_{ij}$.)
 
-**Limb Length Theorem.** For an additive matrix and a leaf j:
+**The pitfall.** The closest pair is **not always** a pair of neighbours. If one leaf evolved very fast, its limb is long, so it is far from everyone, even from its own sibling. Neighbour joining (below) fixes this.
+
+**Limb Length Theorem.** For an additive matrix and a leaf j, the length of j's limb is
 $$\text{LimbLength}(j) = \min_{i,k \neq j} \frac{D_{ij} + D_{jk} - D_{ik}}{2}$$
-Slide example (leaves i, j, k, l with D = [[0,13,21,22],[13,0,12,13],[21,12,0,13],[22,13,13,0]]): LimbLength(i) = 11, LimbLength(j) = 2.
+For the example matrix: LimbLength(i) = min{(13 + 21 − 12)/2, (13 + 22 − 13)/2, (21 + 22 − 13)/2} = min{11, 11, 15} = **11**, and LimbLength(j) = min{(13 + 12 − 21)/2, (13 + 13 − 22)/2, (12 + 13 − 13)/2} = **2**.
 
-**AdditivePhylogeny:** pick a leaf j, compute its limb length, subtract it from j's row and column (making j a “bald” limb of length 0), find leaves i, k with $D_{ij} + D_{jk} = D_{ik}$ (j lies on the i–k path, at distance $D_{ij}$ from i), remove j, solve recursively, then **reattach** j at that point with its limb. This reconstructs the unique tree for an additive matrix in polynomial time.
+**AdditivePhylogeny** builds the exact tree recursively:
+1. Pick a leaf j and compute its limb length.
+2. Subtract it from j's row and column, making j a "bald" limb of length 0 (j now sits *on* the tree).
+3. Find leaves i, k with $D_{ij} + D_{jk} = D_{ik}$: then j lies on the path from i to k, at distance $D_{ij}$ from i.
+4. Remove j, build the tree for the remaining leaves recursively, then **reattach** j at that point on the i–k path with its limb.
+
+For an additive matrix this reconstructs the unique tree that fits it, in polynomial time.
 
 ## Ultrametric trees and UPGMA
 
-If evolution ran at a constant rate (a **molecular clock**), every internal node v would have an **age**, leaves would have age 0, and every root-to-leaf path would have the same length. Such a rooted tree is **ultrametric**.
+**The molecular clock.** Suppose evolution ran at a constant rate in every lineage. Then every internal node would have an **age**, leaves (present-day species) would have age 0, and every root-to-leaf path would have the same length. A rooted tree with this property is **ultrametric**.
 
-**UPGMA** (Unweighted Pair Group Method with Arithmetic mean) is a clustering heuristic assuming this clock:
-1. Start with n single-leaf clusters, each of age 0.
-2. Find the two **closest clusters** $C_1, C_2$, where cluster distance = **average** pairwise distance
+**UPGMA** (Unweighted Pair Group Method with Arithmetic mean) is a simple clustering method that assumes this clock. Watch the step-by-step video first, then follow the algorithm:
+
+{{video:HMKAD13pncQ}}
+
+1. Start with n clusters, one per leaf, each of age 0.
+2. Find the two **closest clusters** $C_1, C_2$, where the distance between clusters is the **average** distance between their members:
 $$D_{C_1,C_2} = \frac{\sum_{i\in C_1}\sum_{j\in C_2} D_{ij}}{|C_1|\,|C_2|}$$
-3. Merge them into a new node of **age $D_{C_1,C_2}/2$**; edge lengths = age(parent) − age(child).
-4. Recompute distances from the new cluster (size-weighted average), and repeat until one cluster remains (the root).
+3. Merge them under a new node of **age $D_{C_1,C_2}/2$** (each side contributes half the distance). Each edge length = age(parent) − age(child).
+4. Recompute distances from the new cluster to all others (as size-weighted averages) and repeat until one cluster remains: the root.
+
+If this looks familiar, it is: UPGMA is exactly **average-linkage hierarchical clustering** from the Gene Expression lesson, with node heights interpreted as times.
+
+{{ref:expression1#hierarchical-clustering}}
 
 {{widget:upgma preset="final"}}
 
 {{game:tree-builder}}
 
-:::exam Final Q2(a): D(A,B) = 4, D(C,D) = 4, all other distances 6
-1. Minimum is 4 (tie between {A,B} and {C,D}; take A,B). Merge **(AB)** at height **2**. New distances: D(AB,C) = (6+6)/2 = 6, D(AB,D) = 6, and D(C,D) = 4 is unchanged.
-2. Minimum 4 → merge **(CD)** at height **2**. D(AB, CD) = (6+6+6+6)/4 = 6.
-3. Merge **(AB)(CD)** at height **6/2 = 3** (root).
+:::example UPGMA with D(A,B) = 4, D(C,D) = 4, all other distances 6
+1. The minimum is 4 (a tie between {A,B} and {C,D}; take A,B). Merge **(AB)** at age **2**. New distances: D(AB, C) = (6 + 6)/2 = 6, D(AB, D) = 6; D(C, D) = 4 is unchanged.
+2. The minimum is 4 → merge **(CD)** at age **2**. D(AB, CD) = (6 + 6 + 6 + 6)/4 = 6.
+3. Merge **(AB)(CD)** at age **6/2 = 3**: the root.
 
-Branch lengths: A, B, C, D each **2** (to their cluster node); AB → root **1**, CD → root **1**. Newick: `((A:2,B:2):1,(C:2,D:2):1);`. Every leaf is 3 from the root, so the tree is ultrametric.
+Branch lengths: A, B, C and D each **2** (to their cluster node); AB → root **1** and CD → root **1**. Newick: `((A:2,B:2):1,(C:2,D:2):1);`. Every leaf is 3 from the root, so the tree is ultrametric, as UPGMA always produces.
 :::
 
-:::exam Final Q2(b): what is an ultrametric tree and why does it matter?
-A rooted tree in which **every root-to-leaf distance is the same**, equivalently each internal node has an age and all leaves (present-day species) are at age 0. It encodes the **molecular clock** hypothesis (mutations accumulate at a constant rate), letting us read **divergence times** directly from branch lengths and date speciation events. Biologically, rates often vary between lineages (generation time, population size, selection), so clock-based methods like UPGMA can produce the wrong topology. Then we use clock-free methods (neighbor joining, maximum likelihood) or **relaxed clocks**.
+:::example What is an ultrametric tree, and why does it matter?
+A rooted tree in which **every root-to-leaf distance is the same**; equivalently, each internal node has an age and all leaves are at age 0. It encodes the **molecular clock** hypothesis (mutations accumulate at a constant rate), which lets us read **divergence times** directly from branch lengths and date speciation events.
+
+In reality, rates often differ between lineages (generation time, population size, selection), so clock-based methods like UPGMA can produce the **wrong topology**. Then we use clock-free methods (neighbour joining, maximum likelihood) or **relaxed clock** models.
 :::
 
-**UPGMA's weaknesses:** it doesn't “fit” a tree to D, it fails when the clock is violated (even on additive matrices), and averages must be weighted by cluster sizes. Still, it is simple and widely used as a quick baseline (and it is exactly average-linkage hierarchical clustering).
+**UPGMA's weaknesses:** it doesn't actually fit a tree to D; it fails when the clock is violated, even on additive matrices; and averages must be weighted by cluster size. Still, it is simple and widely used as a quick baseline.
 
 ## Neighbor joining
 
-**Saitou & Nei (1987).** Correct the closest-pair mistake by penalizing leaves that are far from *everyone*:
-$$D^*_{ij} = (n-2)\,D_{ij} - \text{TotalDistance}_D(i) - \text{TotalDistance}_D(j)$$
-**Neighbor-Joining Theorem:** for an additive D, the minimum element of $D^*$ is always a pair of **neighboring leaves**.
+**Saitou & Nei (1987)** fixed the "closest pair isn't always neighbours" problem by correcting each distance for how far each leaf is from *everyone*. With $\text{TotalDistance}_D(i) = \sum_k D_{ik}$:
 
-Each step: join i, j (minimum $D^*$) into new node m; limb lengths
+$$D^*_{ij} = (n-2)\,D_{ij} - \text{TotalDistance}_D(i) - \text{TotalDistance}_D(j)$$
+
+A fast-evolving leaf has a large total distance, which lowers its $D^*$ values and so compensates for its long limb.
+
+**Neighbor-Joining Theorem:** for an additive matrix D, the smallest element of $D^*$ is always a pair of **neighbouring leaves**.
+
+**Each step:** join the pair i, j with the smallest $D^*$ under a new node m, with limb lengths
 $$\Delta = \frac{\text{Total}(i) - \text{Total}(j)}{n-2},\quad \text{limb}(i) = \frac{D_{ij} + \Delta}{2},\quad \text{limb}(j) = \frac{D_{ij} - \Delta}{2}$$
-then $D_{km} = (D_{ik} + D_{jk} - D_{ij})/2$; repeat. It reconstructs the exact tree for additive matrices, produces a good tree for non-additive ones, needs no molecular clock, and runs in O(n³).
+then set $D_{km} = (D_{ik} + D_{jk} - D_{ij})/2$ for every other leaf k, and repeat on the smaller matrix.
+
+:::example Neighbour joining on the 4-leaf matrix above
+**Totals:** i = 13 + 21 + 22 = 56, j = 38, k = 46, l = 48. With n = 4, $D^*_{ij} = 2 \cdot 13 - 56 - 38 = -68$; similarly $D^*_{kl} = -68$, and every other pair gives −60. So i, j are neighbours (and so are k, l).
+
+**Join i and j:** Δ = (56 − 38)/2 = 9, so limb(i) = (13 + 9)/2 = **11** and limb(j) = (13 − 9)/2 = **2**, matching the Limb Length Theorem. New distances: $D_{mk} = (21 + 12 - 13)/2 = 10$, $D_{ml} = (22 + 13 - 13)/2 = 11$, and $D_{kl} = 13$.
+
+**Three nodes left:** they meet at one central node c with m–c = (10 + 11 − 13)/2 = 4, k–c = (10 + 13 − 11)/2 = 6, l–c = (11 + 13 − 10)/2 = 7.
+
+**Check:** the path i → k is 11 + 4 + 6 = 21 = $D_{ik}$ ✓, and i → l is 11 + 4 + 7 = 22 ✓.
+:::
+
+Neighbour joining reconstructs the exact tree for additive matrices, produces a good tree for non-additive ones, needs no molecular clock, and runs in O(n³). This lecture explains it from a phylogenetics researcher's point of view:
+
+{{video:Dj24mCLQYUE}}
 
 {{widget:nj}}
 
 ## Character-based methods: small parsimony
 
-Distance methods throw away information when they compress an alignment into numbers. **Character-based** methods work on the alignment columns directly.
+Distance methods throw information away when they compress an alignment into one number per pair. **Character-based** methods work directly on the alignment columns.
 
-**Small Parsimony Problem:** given a tree and the characters at its leaves, assign characters to internal nodes **minimizing the total number of changes** (the parsimony score). **Fitch's algorithm** (bottom-up set intersection/union, then top-down assignment) or **Sankoff's** DP (arbitrary substitution costs) solves it in linear time per column.
+**Parsimony** prefers the history with the **fewest mutations**, the simplest explanation of the data.
+
+**Small Parsimony Problem:** given a tree and the letters at its leaves (one alignment column at a time), assign letters to the internal nodes **minimizing the total number of changes** along the edges (the **parsimony score**).
+
+**Fitch's algorithm** solves it in linear time per column, in two passes:
+1. **Bottom-up** (from leaves to root): each leaf's set is its letter. At each internal node, if its two children's sets **intersect**, take the intersection; otherwise take the **union** and count **one change**.
+2. **Top-down** (from root to leaves): pick a letter for the root from its set, then give each child the same letter if it's in the child's set, or any letter from the child's set otherwise.
+
+**Example.** Tree ((A, B), (C, D)) with leaf letters A = `A`, B = `C`, C = `C`, D = `C`. Bottom-up: {A} ∩ {C} is empty → union {A, C}, one change; {C} ∩ {C} = {C}; root: {A, C} ∩ {C} = {C}. Total: **1 change**. Top-down: root C, both internal nodes C, so the single change is on the edge to leaf A.
 
 {{widget:fitch}}
 
-**Large parsimony** (also search over all tree shapes) is NP-hard, so we use heuristic tree rearrangements (nearest-neighbor interchanges).
+**Sankoff's algorithm** is the dynamic-programming generalization that allows arbitrary substitution costs (e.g., transitions cheaper than transversions).
+
+**Large parsimony** also searches over all possible tree shapes. The number of trees explodes, $(2n-3)!!$ rooted trees for n leaves, and the problem is NP-hard, so heuristics are used: start from a reasonable tree and apply local rearrangements such as **nearest-neighbour interchanges**, keeping changes that lower the score.
+
+{{ref:math#counting-how-big-is-the-search-space|algo#np-hardness-and-heuristics}}
 
 :::sota What researchers use today
-- **Maximum likelihood** (RAxML-NG, IQ-TREE) with explicit substitution models (JC69, HKY, GTR+Γ) and **bootstrapping** for branch support.
+- **Maximum likelihood** (RAxML-NG, IQ-TREE) with explicit substitution models (JC69, HKY, GTR+Γ) and **bootstrapping** to measure support for each branch.
 - **Bayesian** inference (MrBayes, BEAST) with relaxed molecular clocks to date divergences (e.g., when SARS-CoV-2 lineages emerged).
 - **Nextstrain** builds real-time phylogenies of viral outbreaks from genomes uploaded worldwide.
 :::

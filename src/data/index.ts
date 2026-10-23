@@ -1,4 +1,4 @@
-import type { Module, Track } from './types';
+import type { Module, Track, Video } from './types';
 import { splitSections } from './types';
 import intro from './modules/intro';
 import oric from './modules/oric';
@@ -30,11 +30,15 @@ export const MODULES: Module[] = [
 
 export const MODULE_BY_ID: Record<string, Module> = Object.fromEntries(MODULES.map((m) => [m.id, m]));
 
+/** Every lesson video by YouTube id (a video shared by two modules keeps its first description). */
+export const VIDEO_BY_ID: Record<string, Video> = {};
+for (const m of MODULES) for (const v of m.videos) VIDEO_BY_ID[v.id] ??= v;
+
 export const TRACKS: Track[] = [
   {
     id: 'foundations',
     title: 'Foundations',
-    blurb: 'The math, algorithms and data skills every module assumes. Skim if you are confident, and come back when a lesson links here.',
+    blurb: 'The math, algorithms and data skills the course uses. You do not need to finish these first: every lesson links to the exact foundation section it relies on, and opens it inline when you get stuck.',
     modules: ['math', 'algo', 'tools'],
   },
   {

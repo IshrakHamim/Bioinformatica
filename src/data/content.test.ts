@@ -6,7 +6,7 @@ import * as AL from '../lib/bio/alignment';
 import * as H from '../lib/bio/hmm';
 import * as M from '../lib/bio/motifs';
 import { CONCEPTS, CONCEPT_BY_ID } from './concepts';
-import { MODULES, MODULE_BY_ID, TRACKS } from './index';
+import { MODULES, MODULE_BY_ID, TRACKS, sectionsOf } from './index';
 
 // Vite's ?raw imports are resolved by the vite plugin pipeline vitest uses, so MODULES load normally.
 
@@ -53,6 +53,26 @@ describe('content integrity', () => {
     CONCEPTS.forEach((c) => visit(c.id));
     // every concept id used by a module is defined
     for (const m of MODULES) for (const c of m.concepts) expect(CONCEPT_BY_ID[c], `${m.id} concept ${c}`).toBeDefined();
+  });
+  it('every module video is placed exactly once in its lesson, and only listed videos are embedded', () => {
+    for (const m of MODULES) {
+      const placed = [...m.content.matchAll(/^\{\{video:([\w-]{11})\}\}\s*$/gm)].map((x) => x[1]);
+      for (const v of m.videos) expect(placed.filter((id) => id === v.id).length, `${m.id} places ${v.id}`).toBe(1);
+      for (const id of placed) expect(m.videos.some((v) => v.id === id), `${m.id} embeds unlisted ${id}`).toBe(true);
+      expect(m.content, `${m.id} uses the old {{yt:}} form`).not.toMatch(/\{\{yt:/);
+    }
+  });
+  it('every refresher link points to an existing section of another module', () => {
+    const ids = new Set(MODULES.flatMap((m) => sectionsOf(m).map((s) => `${m.id}#${s.id}`)));
+    for (const m of MODULES)
+      for (const r of m.content.matchAll(/^\{\{ref:(.+)\}\}\s*$/gm))
+        for (const t of r[1].split('|')) {
+          expect(ids.has(t.trim()), `${m.id} refers to ${t}`).toBe(true);
+          expect(t.trim().split('#')[0], `${m.id} refers to itself`).not.toBe(m.id);
+        }
+  });
+  it('every lesson outside the foundations links to at least one foundation refresher', () => {
+    for (const m of MODULES.filter((x) => x.track !== 'foundations')) expect(m.content, m.id).toMatch(/\{\{ref:(math|algo|tools)#/);
   });
   it('content markdown has no unbalanced callouts', () => {
     const dir = join(__dirname, 'content');

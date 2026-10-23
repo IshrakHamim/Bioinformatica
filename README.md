@@ -13,7 +13,9 @@ Written for a beginner graduate student with a CS background: every biological i
 | **Practice** | a quiz and worked practice problems in every module (adapted from the course quizzes and exams, solutions computed by the site's own unit-tested algorithms); a mixed checkpoint quiz for each learning path |
 | **Gamification** | XP, levels, streaks, 17 badges, 13 mini-games with high scores, each embedded in the lesson it practises |
 | **Study tools** | 170 flashcards (Leitner spaced repetition), per-module and whole-course mind maps, a 154-concept prerequisite graph, glossary and full-text search |
-| **Resources** | 74 YouTube videos (each checked to exist), primary papers and docs, Rosalind problems for every algorithm |
+| **Videos in the lessons** | 74 YouTube videos (each checked to exist), placed inside the lessons where they help: before a section that is easier after watching, or after it as a recap |
+| **Foundation refreshers** | lessons link to the exact math, algorithms or tools section they rely on; it opens inline, so you never have to finish the foundations first |
+| **Further reading** | primary papers and docs, Rosalind problems for every algorithm |
 
 ## Progress tracking across devices
 
@@ -31,7 +33,7 @@ Syncing merges rather than overwrites: achievements are unioned, and the newest 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 46 unit tests: algorithms + content integrity + worked-solution numbers
+npm test           # 49 unit tests: algorithms + content integrity + worked-solution numbers
 npm run build      # static site in dist/
 ```
 
@@ -47,13 +49,14 @@ The site uses hash routing and relative asset paths, so the same build works at 
 1. Write the lesson in `src/data/content/<id>.md`. Each `## Heading` becomes a trackable section. You can embed:
    - widgets: `{{widget:alignment preset="final"}}` (registry in `src/widgets/registry.ts`),
    - mini-games: `{{game:id}}` (registry in `src/games/registry.ts`; the game's `module` must be this module),
-   - videos: `{{yt:VIDEO_ID|Title}}`,
+   - videos: `{{video:VIDEO_ID}}` on its own line, where the video helps; list the video (title, channel, a one-line "why") in the module's `videos`. Every listed video must be placed exactly once, since videos only appear inside lessons,
+   - foundation refreshers: `{{ref:math#bayes-rule|algo#dynamic-programming}}` (module id `#` section id, the section heading in kebab case), next to the step that needs it,
    - callouts: `:::tip Title` … `:::` (types: tip, bio, cs, warn, exam, sota),
    - math: `$inline$` and `$$display$$` (KaTeX).
 2. Describe the module in `src/data/modules/<id>.ts` (copy an existing one): quiz, flashcards, mind map, practice problems, videos, articles, prerequisites, concepts.
 3. Import it in `src/data/index.ts` and add its id to the `biotech` track.
 4. Add any new concepts to `src/data/concepts.ts` so they appear in the knowledge graph.
-5. Run `npm test`. The content tests catch missing widgets, broken prerequisites, duplicate ids and concept-graph cycles.
+5. Run `npm test`. The content tests catch missing widgets, unplaced or unlisted videos, broken refreshers, broken prerequisites, duplicate ids and concept-graph cycles.
 
 ## How the content was verified
 

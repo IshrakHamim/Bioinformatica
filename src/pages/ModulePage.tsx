@@ -5,17 +5,16 @@ import { FlashcardDeck } from '../components/Flashcards';
 import { MindMap } from '../components/MindMap';
 import { Quiz } from '../components/Quiz';
 import { toast } from '../components/Toast';
-import { YouTube } from '../components/YouTube';
 import { GameCard } from '../components/GameCard';
 import { gamesFor } from '../games/registry';
-import { BlockMd, Markdown } from '../lib/markdown';
+import { BlockMd, LessonModule, Markdown } from '../lib/markdown';
 import { XP, update, useProgress } from '../lib/progress';
 import { moduleStats } from '../lib/stats';
 import type { Module, Practice } from '../data/types';
 
-const TABS = ['learn', 'media', 'quiz', 'practice', 'games', 'cards', 'map'] as const;
+const TABS = ['learn', 'quiz', 'practice', 'games', 'cards', 'map', 'reading'] as const;
 type Tab = (typeof TABS)[number];
-const TAB_LABEL: Record<Tab, string> = { learn: '📖 Lessons', media: '🎬 Watch & read', quiz: '❓ Quiz', practice: '✍️ Practice problems', games: '🎮 Games', cards: '🃏 Flashcards', map: '🧠 Mind map' };
+const TAB_LABEL: Record<Tab, string> = { learn: '📖 Lessons', quiz: '❓ Quiz', practice: '✍️ Practice problems', games: '🎮 Games', cards: '🃏 Flashcards', map: '🧠 Mind map', reading: '📚 Further reading' };
 
 export function PracticeCard({ m, x }: { m: Module; x: Practice }) {
   const p = useProgress();
@@ -58,6 +57,11 @@ export default function ModulePage() {
   useEffect(() => {
     if (m && p.lastModule !== m.id) update((pp) => { pp.lastModule = m.id; });
   }, [m?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const jump = params.get('s');
+  useEffect(() => {
+    // ?s=<section id> (used by the inline refreshers) scrolls straight to that section.
+    if (tab === 'learn' && jump) requestAnimationFrame(() => document.getElementById(jump)?.scrollIntoView({ behavior: 'smooth' }));
+  }, [m?.id, tab, jump]);
   if (!m) return <p>Module not found. <Link to="/learn">Back to paths</Link></p>;
   const s = moduleStats(m, p);
   const toggle = (sid: string) => {
@@ -94,7 +98,7 @@ export default function ModulePage() {
         </div>
       )}
       <div className="tabs" role="tablist">
-        {TABS.filter((t) => (t !== 'practice' || m.practice.length) && (t !== 'games' || games.length)).map((t) => (
+        {TABS.filter((t) => (t !== 'practice' || m.practice.length) && (t !== 'games' || games.length) && (t !== 'reading' || m.articles.length || m.rosalind?.length)).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setParams({ tab: t })}>{TAB_LABEL[t]}</button>
         ))}
       </div>
@@ -120,7 +124,9 @@ export default function ModulePage() {
                   <h2>{sec.title}</h2>
                   <button className={`btn small done-btn ${done ? 'done' : ''}`} onClick={() => toggle(sec.id)}>{done ? '✓ Completed' : 'Mark complete'}</button>
                 </div>
-                <Markdown source={sec.body} />
+                <LessonModule.Provider value={m}>
+                  <Markdown source={sec.body} />
+                </LessonModule.Provider>
               </article>
             );
           })}
@@ -136,27 +142,22 @@ export default function ModulePage() {
         </div>
       )}
 
-      {tab === 'media' && (
+      {tab === 'reading' && (
         <div>
-          <h2>Videos</h2>
-          <p className="small muted">Every video below was checked to exist on YouTube. Click to load it.</p>
-          <div className="grid cols-2">
-            {m.videos.map((v) => (
-              <div key={v.id} className="card">
-                <YouTube id={v.id} title={v.title} channel={v.channel} />
-                {v.why && <div className="small muted">{v.why}</div>}
+          <p className="small muted">The videos for this module are inside the lesson, next to the part they explain. This page collects the articles, papers and tools to go further.</p>
+          {m.articles.length > 0 && (
+            <>
+              <h2>Articles & resources</h2>
+              <div className="col">
+                {m.articles.map((a) => (
+                  <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="card" style={{ color: 'var(--text)' }}>
+                    <b>{a.title} ↗</b>
+                    <div className="small muted">{a.source}{a.why ? ` · ${a.why}` : ''}</div>
+                  </a>
+                ))}
               </div>
-            ))}
-          </div>
-          <h2>Articles & resources</h2>
-          <div className="col">
-            {m.articles.map((a) => (
-              <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="card" style={{ color: 'var(--text)' }}>
-                <b>{a.title} ↗</b>
-                <div className="small muted">{a.source}{a.why ? ` · ${a.why}` : ''}</div>
-              </a>
-            ))}
-          </div>
+            </>
+          )}
           {m.rosalind && m.rosalind.length > 0 && (
             <>
               <h2>Rosalind problems</h2>

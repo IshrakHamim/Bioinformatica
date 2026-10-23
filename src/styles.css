@@ -205,7 +205,7 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85re
 .callout.bio { border-left: 5px solid var(--a); }
 .callout.cs { border-left: 5px solid var(--accent-2); }
 .callout.warn { border-left: 5px solid var(--warn); }
-.callout.exam { border-left: 5px solid var(--danger); }
+.callout.exam, .callout.example { border-left: 5px solid var(--danger); }
 .callout.sota { border-left: 5px solid #9c36b5; }
 
 .section-card { scroll-margin-top: 70px; }
@@ -272,6 +272,16 @@ svg .dim { fill: var(--text-dim); }
 .kg-node { cursor: pointer; }
 .fade-in { animation: pop 0.3s ease-out; }
 .prose .game-card { margin: 16px 0; border-left: 5px solid var(--accent-2); }
+.lesson-video { margin: 18px 0; padding: 12px 14px 2px; max-width: 680px; border: 1px solid var(--border); border-left: 5px solid #e03131; border-radius: 12px; background: var(--bg-elev); }
+.lesson-video .col { margin: 8px 0 10px !important; }
+.lesson-video-why { font-size: 0.93rem; font-weight: 600; }
+.refresher { margin: 10px 0 16px; }
+.refresher-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.85rem; }
+.refresher-label { color: var(--text-dim); font-weight: 600; }
+.refresher-chip { font: inherit; font-size: 0.82rem; padding: 3px 10px; border-radius: 999px; border: 1px dashed var(--accent-2); background: var(--bg-sunk); color: var(--text); cursor: pointer; }
+.refresher-chip:hover, .refresher-chip.on { border-style: solid; background: var(--accent-soft); }
+.refresher-panel { margin-top: 8px; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--accent-2); background: var(--bg-sunk); }
+.refresher-panel .prose { font-size: 0.96rem; }
 
 /* ---------- dashboard ---------- */
 .dash-hero {

@@ -1,11 +1,14 @@
 import { Marked } from 'marked';
 import markedKatex from 'marked-katex-extension';
 import 'katex/dist/katex.min.css';
-import { Fragment, useMemo, type ReactNode } from 'react';
+import { Fragment, createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { WIDGETS } from '../widgets/registry';
 import { YouTube } from '../components/YouTube';
 import { GameCard } from '../components/GameCard';
 import { GAME_BY_ID } from '../games/registry';
+import { MODULE_BY_ID, VIDEO_BY_ID, sectionsOf } from '../data';
+import type { Module } from '../data/types';
 
 const marked = new Marked();
 marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
@@ -20,7 +23,7 @@ marked.use({
 });
 
 const CALLOUT_ICONS: Record<string, string> = {
-  tip: '💡', bio: '🧬', cs: '💻', warn: '⚠️', exam: '🎯', sota: '🚀',
+  tip: '💡', bio: '🧬', cs: '💻', warn: '⚠️', exam: '🎯', example: '✍️', sota: '🚀',
 };
 
 /** :::type Title ... ::: blocks become styled callouts (rendered recursively). */
@@ -49,7 +52,74 @@ function renderMd(src: string): string {
   return out.join('\n');
 }
 
-/** Markdown with embedded `{{widget:name key=value}}`, `{{game:id}}` and `{{yt:ID|Title}}` lines. */
+/** The module whose lesson is being rendered, so videos use that module's own description. */
+export const LessonModule = createContext<Module | null>(null);
+
+/** A lesson video placed at the point in the text where it helps (metadata comes from the module's `videos`). */
+function LessonVideo({ id }: { id: string }) {
+  const m = useContext(LessonModule);
+  const v = m?.videos.find((x) => x.id === id) ?? VIDEO_BY_ID[id];
+  if (!v) return <div className="callout warn">Unknown video: {id}</div>;
+  return (
+    <div className="lesson-video">
+      {v.why && <div className="lesson-video-why">🎬 {v.why}</div>}
+      <YouTube id={v.id} title={v.title} channel={v.channel} />
+    </div>
+  );
+}
+
+/** Parse "math#probability-basics|algo#dynamic-programming" into resolvable section refs. */
+export function parseRefs(spec: string) {
+  return spec.split('|').map((t) => {
+    const [mod, sec] = t.trim().split('#');
+    const m = MODULE_BY_ID[mod];
+    const s = m && sectionsOf(m).find((x) => x.id === sec);
+    return { key: t.trim(), mod, sec, m, s };
+  });
+}
+
+/** "Need a refresher?" chips that open a foundation section inline, without leaving the lesson. */
+function Refresher({ spec }: { spec: string }) {
+  const refs = useMemo(() => parseRefs(spec), [spec]);
+  const [open, setOpen] = useState<string | null>(null);
+  const cur = refs.find((r) => r.key === open);
+  return (
+    <div className="refresher">
+      <div className="refresher-row">
+        <span className="refresher-label">🧱 Stuck? Quick refresher:</span>
+        {refs.map((r) =>
+          r.m && r.s ? (
+            <button key={r.key} className={`refresher-chip ${open === r.key ? 'on' : ''}`} aria-expanded={open === r.key} onClick={() => setOpen(open === r.key ? null : r.key)}>
+              {r.s.title} <span className="muted">· {r.m.code}</span>
+            </button>
+          ) : (
+            <span key={r.key} className="refresher-chip">Unknown section: {r.key}</span>
+          ),
+        )}
+      </div>
+      {cur?.m && cur.s && (
+        <div className="refresher-panel fade-in">
+          <div className="spread small">
+            <b>{cur.m.code} {cur.m.title} › {cur.s.title}</b>
+            <span className="row">
+              <Link to={`/m/${cur.m.id}?tab=learn&s=${cur.s.id}`}>Open the full lesson →</Link>
+              <button className="btn small" onClick={() => setOpen(null)}>Close</button>
+            </span>
+          </div>
+          <LessonModule.Provider value={cur.m}>
+            <Markdown source={cur.s.body} />
+          </LessonModule.Provider>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Markdown with embedded block directives, one per line:
+ * `{{widget:name key="value"}}`, `{{game:id}}`, `{{video:ID}}` (looked up in the module videos),
+ * `{{yt:ID|Title}}` (ad-hoc video) and `{{ref:module#section|...}}` (inline refreshers).
+ */
 export function Markdown({ source }: { source: string }) {
   const parts = useMemo(() => {
     const chunks: ReactNode[] = [];
@@ -62,6 +132,8 @@ export function Markdown({ source }: { source: string }) {
     for (const line of source.split('\n')) {
       const w = line.match(/^\{\{widget:([\w-]+)(.*)\}\}\s*$/);
       const y = line.match(/^\{\{yt:([\w-]{11})\|(.*)\}\}\s*$/);
+      const v = line.match(/^\{\{video:([\w-]{11})\}\}\s*$/);
+      const r = line.match(/^\{\{ref:(.+)\}\}\s*$/);
       const g = line.match(/^\{\{game:([\w-]+)\}\}\s*$/);
       if (w) {
         flush();
@@ -73,6 +145,12 @@ export function Markdown({ source }: { source: string }) {
         flush();
         const G = GAME_BY_ID[g[1]];
         chunks.push(G ? <GameCard key={n++} game={G} /> : <div key={n++} className="callout warn">Unknown game: {g[1]}</div>);
+      } else if (v) {
+        flush();
+        chunks.push(<LessonVideo key={n++} id={v[1]} />);
+      } else if (r) {
+        flush();
+        chunks.push(<Refresher key={n++} spec={r[1]} />);
       } else if (y) {
         flush();
         chunks.push(<YouTube key={n++} id={y[1]} title={y[2]} />);
