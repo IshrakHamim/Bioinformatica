@@ -54,6 +54,7 @@ export function setGistConfig(cfg: GistConfig | null) {
 let authToken = '';
 
 async function serverPull(): Promise<Progress | null | 'unavailable'> {
+  if (location.hostname.endsWith('github.io')) return 'unavailable'; // static hosting: no API routes
   try {
     const r = await fetch('api/progress', { headers: { Authorization: `Basic ${authToken}` } });
     if (r.status === 404 || r.status === 501 || r.status === 405) return 'unavailable';
