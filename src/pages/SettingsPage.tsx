@@ -1,100 +1,89 @@
-import { useEffect, useState } from 'react';
-import { emptyProgress, getProgress, mergeProgress, replaceProgress, type Progress } from '../lib/progress';
-import { getGistConfig, getSyncStatus, onSyncStatus, setGistConfig, startSync, syncNow } from '../lib/sync';
+import type { ReactNode } from 'react';
+import { DEFAULT_PREFS, usePrefs, type Prefs } from '../lib/prefs';
 
-function useTheme() {
-  const [theme, setTheme] = useState<string>(() => {
-    try {
-      return localStorage.getItem('bioinformatica.theme') ?? 'system';
-    } catch {
-      return 'system';
-    }
-  });
-  useEffect(() => {
-    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', theme);
-    try {
-      localStorage.setItem('bioinformatica.theme', theme);
-    } catch {
-      /* ignore */
-    }
-  }, [theme]);
-  return [theme, setTheme] as const;
+function Choice<T extends string>({ value, options, onPick }: { value: T; options: { v: T; label: ReactNode }[]; onPick: (v: T) => void }) {
+  return (
+    <div className="seg" role="radiogroup">
+      {options.map((o) => (
+        <button key={o.v} role="radio" aria-checked={value === o.v} className={`seg-btn ${value === o.v ? 'on' : ''}`} onClick={() => onPick(o.v)}>{o.label}</button>
+      ))}
+    </div>
+  );
 }
 
+function Row({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+  return (
+    <div className="pref-row">
+      <div>
+        <b>{title}</b>
+        <div className="small muted">{hint}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const ACCENTS: { v: Prefs['accent']; color: string; name: string }[] = [
+  { v: 'teal', color: '#0f9d7a', name: 'Teal' },
+  { v: 'blue', color: '#2f6fdf', name: 'Blue' },
+  { v: 'violet', color: '#7c4ddb', name: 'Violet' },
+  { v: 'rose', color: '#d1366b', name: 'Rose' },
+  { v: 'amber', color: '#b86e00', name: 'Amber' },
+];
+
 export default function SettingsPage() {
-  const [status, setStatus] = useState(getSyncStatus());
-  useEffect(() => onSyncStatus(setStatus), []);
-  const [token, setToken] = useState(getGistConfig()?.token ?? '');
-  const [theme, setTheme] = useTheme();
-  const [msg, setMsg] = useState('');
-
-  const exportProgress = () => {
-    const blob = new Blob([JSON.stringify(getProgress(), null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `bioinformatica-progress-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
-  const importProgress = async (f: File) => {
-    try {
-      const data = JSON.parse(await f.text()) as Progress;
-      if (data?.v !== 1) throw new Error('Not a Bioinformatica progress file');
-      replaceProgress(mergeProgress(getProgress(), data));
-      setMsg('Imported and merged ✓');
-    } catch (e) {
-      setMsg(`Import failed: ${(e as Error).message}`);
-    }
-  };
-
+  const [prefs, set] = usePrefs();
   return (
     <div className="col" style={{ gap: 16 }}>
-      <h1>Settings & sync</h1>
+      <h1>Settings</h1>
 
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Progress sync across devices</h3>
-        <p className="small">
-          Status: <b>{status.mode === 'server' ? 'Server sync (Vercel)' : status.mode === 'gist' ? 'GitHub Gist sync' : 'This browser only'}</b> · {status.message}
-          {status.at && <span className="muted"> (last sync {new Date(status.at).toLocaleTimeString()})</span>}
-        </p>
-        <ul className="small">
-          <li><b>This browser:</b> progress is saved automatically, with nothing to set up. (Accounts with server sync will come back once a Redis store is connected.)</li>
-          <li><b>GitHub Gist:</b> paste a GitHub token with the <code>gist</code> scope below, once per device. Progress is saved to a private Gist in your GitHub account, and other devices with a token find the same Gist automatically.</li>
-          <li>Or use <b>Export/Import</b> to move a progress file between devices by hand.</li>
-        </ul>
-        <div className="row">
-          <input type="password" placeholder="GitHub token (gist scope)" value={token} onChange={(e) => setToken(e.target.value)} style={{ minWidth: 280 }} aria-label="GitHub token" />
-          <button className="btn small primary" onClick={() => { setGistConfig(token ? { token } : null); startSync(); }}>Save & connect</button>
-          <button className="btn small" onClick={() => syncNow()} disabled={status.mode === 'local'}>Sync now</button>
-          {getGistConfig() && <button className="btn small danger" onClick={() => { setGistConfig(null); setToken(''); startSync(); }}>Disconnect Gist</button>}
-        </div>
-        <p className="tiny muted">Create a token at github.com → Settings → Developer settings → Personal access tokens (classic) with only the “gist” scope. It is stored only in this browser.</p>
-      </div>
-
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Backup</h3>
-        <div className="row">
-          <button className="btn small" onClick={exportProgress}>⬇ Export progress</button>
-          <label className="btn small">⬆ Import & merge<input type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importProgress(e.target.files[0])} /></label>
-          {msg && <span className="small">{msg}</span>}
-        </div>
-      </div>
-
-      <div className="card">
+      <div className="card col" style={{ gap: 0 }}>
         <h3 style={{ marginTop: 0 }}>Appearance</h3>
-        <div className="row">
-          {['system', 'light', 'dark'].map((t) => <button key={t} className={`btn small ${theme === t ? 'primary' : ''}`} onClick={() => setTheme(t)}>{t[0].toUpperCase() + t.slice(1)}</button>)}
+        <Row title="Theme" hint="System follows your device's light or dark mode.">
+          <Choice value={prefs.theme} onPick={(theme) => set({ theme })} options={[{ v: 'system', label: '🖥️ System' }, { v: 'light', label: '☀️ Light' }, { v: 'dark', label: '🌙 Dark' }]} />
+        </Row>
+        <Row title="Accent color" hint="Used for buttons, progress bars and highlights.">
+          <div className="row" role="radiogroup">
+            {ACCENTS.map((a) => (
+              <button key={a.v} role="radio" aria-checked={prefs.accent === a.v} aria-label={a.name} title={a.name} className={`swatch ${prefs.accent === a.v ? 'on' : ''}`} style={{ background: a.color }} onClick={() => set({ accent: a.v })} />
+            ))}
+          </div>
+        </Row>
+        <Row title="Motion" hint="Reduced turns off animations and transitions.">
+          <Choice value={prefs.motion} onPick={(motion) => set({ motion })} options={[{ v: 'full', label: 'Full' }, { v: 'reduced', label: 'Reduced' }]} />
+        </Row>
+      </div>
+
+      <div className="card col" style={{ gap: 0 }}>
+        <h3 style={{ marginTop: 0 }}>Reading</h3>
+        <Row title="Font" hint="Atkinson Hyperlegible is designed for easy letter recognition.">
+          <Choice value={prefs.font} onPick={(font) => set({ font })} options={[
+            { v: 'inter', label: <span style={{ fontFamily: 'Inter' }}>Inter</span> },
+            { v: 'atkinson', label: <span style={{ fontFamily: 'Atkinson Hyperlegible' }}>Atkinson</span> },
+            { v: 'serif', label: <span style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>Serif</span> },
+            { v: 'system', label: <span style={{ fontFamily: 'system-ui' }}>System</span> },
+          ]} />
+        </Row>
+        <Row title="Text size" hint="Scales lesson text and the whole interface.">
+          <Choice value={prefs.size} onPick={(size) => set({ size })} options={[
+            { v: 'small', label: <span style={{ fontSize: 13 }}>A</span> },
+            { v: 'medium', label: <span style={{ fontSize: 16 }}>A</span> },
+            { v: 'large', label: <span style={{ fontSize: 19 }}>A</span> },
+            { v: 'xlarge', label: <span style={{ fontSize: 22 }}>A</span> },
+          ]} />
+        </Row>
+        <div className="pref-preview">
+          <div className="tiny muted">Preview</div>
+          <p style={{ margin: '4px 0 0' }}>The reverse complement of <span className="mono">ATGGCC</span> is <span className="mono">GGCCAT</span>: complement each base, then read the strand backwards, 5′ → 3′.</p>
         </div>
       </div>
 
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Danger zone</h3>
-        <button className="btn small danger" onClick={() => { if (confirm('Reset ALL progress on this device? Synced copies are merged back on next sync unless you also clear them.')) replaceProgress({ ...emptyProgress(), updatedAt: Date.now() }); }}>Reset progress</button>
+      <div className="row">
+        <button className="btn small" onClick={() => set(DEFAULT_PREFS)}>Restore defaults</button>
       </div>
 
       <div className="card small muted">
-        <b>About.</b> Bioinformatica turns the CSE443 (BRAC University) bioinformatics course into interactive lessons. Lesson text is original and paraphrased; it follows the course's textbooks (Compeau &amp; Pevzner; Gusfield) and the instructor's lecture topics. Algorithms in the widgets are implemented from scratch and unit-tested against textbook, handout and exam values.
+        <b>About.</b> Bioinformatica turns the CSE443 (BRAC University) bioinformatics course into interactive lessons. Lesson text is original and paraphrased; it follows the course's textbooks (Compeau &amp; Pevzner; Gusfield) and the instructor's lecture topics. Algorithms in the widgets are implemented from scratch and unit-tested against textbook, handout and exam values. Your progress is saved in this browser.
       </div>
     </div>
   );

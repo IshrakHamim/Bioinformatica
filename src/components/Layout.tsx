@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { levelInfo, levelTitle, streak, totalXp, useProgress } from '../lib/progress';
-import { getSyncStatus, onSyncStatus } from '../lib/sync';
 
 export function Logo({ size = 30 }: { size?: number }) {
   return (
@@ -22,7 +21,7 @@ const NAV: { to: string; label: string; icon: string; section?: string }[] = [
   { to: '/graph', label: 'Knowledge graph', icon: '🕸️', section: 'Explore' },
   { to: '/mindmaps', label: 'Mind maps', icon: '🧠' },
   { to: '/glossary', label: 'Glossary & search', icon: '🔎' },
-  { to: '/settings', label: 'Settings & sync', icon: '⚙️', section: 'Settings' },
+  { to: '/settings', label: 'Settings', icon: '⚙️', section: 'Personalize' },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -31,8 +30,6 @@ export function Layout({ children }: { children: ReactNode }) {
   const p = useProgress();
   const xp = totalXp(p);
   const lv = levelInfo(xp);
-  const [sync, setSync] = useState(getSyncStatus());
-  useEffect(() => onSyncStatus(setSync), []);
   useEffect(() => {
     setOpen(false);
     window.scrollTo(0, 0);
@@ -55,9 +52,6 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="spread"><b>Lv {lv.level} · {levelTitle(lv.level)}</b><span>🔥 {streak(p)}</span></div>
           <div className="progress" style={{ margin: '6px 0' }}><div style={{ width: `${(lv.into / lv.need) * 100}%` }} /></div>
           <div className="tiny muted">{xp} XP · {lv.need - lv.into} to next level</div>
-          <div className="tiny muted" title={sync.message} style={{ marginTop: 4 }}>
-            {sync.mode === 'local' ? '💾 Local only' : sync.state === 'error' ? '⚠️ Sync error' : sync.state === 'syncing' ? '🔄 Syncing…' : '☁️ Synced'}
-          </div>
         </div>
       </aside>
       <div className="main">

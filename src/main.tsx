@@ -2,13 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
+import { applyPrefs, loadPrefs } from './lib/prefs';
 
-try {
-  const theme = localStorage.getItem('bioinformatica.theme');
-  if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
-} catch {
-  /* storage unavailable */
-}
+applyPrefs(loadPrefs());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -5,7 +5,7 @@ import type { Question, Track } from '../data/types';
 import { Quiz } from '../components/Quiz';
 import { update, useProgress } from '../lib/progress';
 import { trackProgress } from '../lib/stats';
-import { ModuleCard } from './Dashboard';
+import { ModuleCard } from '../components/ModuleCard';
 
 const CHECKPOINT_SIZE = 12;
 
