@@ -2,6 +2,15 @@
 
 A biologist could find oriC experimentally by deleting pieces of the genome until replication stops. That is slow and expensive. A computer scientist asks instead: *is there a hidden message in the DNA sequence that marks the spot?* This lesson follows Chapter 1 of Compeau & Pevzner and builds that answer step by step, from simple word counting to a statistical signal left by replication itself.
 
+:::story The whole lesson as one detective story
+1. **The vague question:** where does replication start?
+2. **First hypothesis:** it starts where DnaA boxes are packed together. So look for k-mers that are frequent *in a small window* (clumps), counting reverse complements and near-matches too. **The catch:** across a whole genome this finds hundreds of candidates. It is a needle-in-a-haystack search.
+3. **Second hypothesis:** the way replication works leaves a statistical "scar" on the *entire* genome. Count G minus C as you walk along it, and the scar bottoms out at the origin. This is fast (one pass), but it is low resolution: it gives you a neighbourhood, not the exact message.
+4. **Combine them:** use the skew to find the neighbourhood (a few hundred bases out of millions), then search only that window for frequent words with mismatches and reverse complements.
+
+Keep this plan in mind as you read: a cheap, genome-wide, **low-resolution** method narrows the search, then an expensive, **high-resolution** method finds the signal. You will see this pattern again and again (BLAST and read mappers work exactly this way).
+:::
+
 If you like learning in Bangla, this walkthrough covers the first half of the chapter (k-mers and frequent words). Watch it before or alongside the next two sections.
 
 {{video:smFsAm-R_Vo}}
@@ -77,6 +86,10 @@ A k-mer forms an **(L, t)-clump** in a genome if some window of length L contain
 
 **The problem with clumps.** In *E. coli*, hundreds of different 9-mers form (500, 3)-clumps. Clumps alone cannot tell us where oriC is. We need a second, independent signal to narrow the search to a small region, and then we can look for DnaA boxes there. That signal comes from the mechanics of replication.
 
+:::think What is the real difference between "most frequent word" and "clump"?
+**Frequent Words** looks at the whole string: a k-mer wins if it is common *anywhere*. **Clump Finding** asks for high frequency *inside a short window* of length L. The clump version is the better model of an origin, because DnaA boxes are useful to the cell only when several of them sit **close together** in one small region. A word that is common but spread thinly across the whole genome is not an origin signal.
+:::
+
 ## Replication is asymmetric
 
 Watch the replication animation again if leading and lagging strands are not fresh in your mind; this section relies on them.
@@ -90,6 +103,17 @@ Now recall the rule from the Introduction: DNA polymerase builds a new strand on
 Split each of the two strands into two halves at oriC and terC. That gives four **half-strands**:
 - On two of them, the polymerase can move in the same direction as the fork, continuously from oriC to terC. These are **leading half-strands**, which the textbook calls *reverse* half-strands.
 - On the other two, the polymerase has to move against the fork. It waits for the fork to open about 2,000 bases, makes a short **Okazaki fragment** back toward oriC, and repeats. These are **lagging half-strands** (*forward* half-strands). **DNA ligase** joins the fragments.
+
+:::story An analogy: repaving a circular racetrack
+Picture a circular racetrack with two lanes, the two strands. You must build a brand-new copy of both lanes, and your paving machine (**DNA polymerase**) has one unbreakable rule: **it can only drive in one direction** (the 5′→3′ rule).
+
+- You can't start anywhere: the crew must begin at the official start line, **oriC**. There they pull the two lanes apart, opening a "bubble" with two work zones (the **replication forks**) that move away from each other around the track.
+- Follow one work zone. On one lane the paver's allowed direction matches the direction the zone is moving, so it drives smoothly behind the zone and paves in one continuous piece: the **leading strand**.
+- On the other lane the paver points the wrong way. So the crew waits until a stretch (about 2,000 bases) has been unzipped, drops a paver at the far end, and it paves **backwards** until it hits the last paved piece. Then it waits for the next stretch, and so on. These backward chunks are **Okazaki fragments**, and a "tar machine" (**DNA ligase**) seals the joints: the **lagging strand**.
+- Two work zones × (one leading + one lagging) = **four paving jobs running at once**. That is what "four DNA polymerases" means on the slides.
+
+**Why a computer scientist cares:** the lagging lane spends a long time lying exposed and single, waiting for the next paver. Exposed lanes get damaged more. The next section turns that damage into an algorithm.
+:::
 
 The key difference: a lagging half-strand spends much longer sitting **single-stranded**, waiting for its next fragment to be built.
 
@@ -130,6 +154,22 @@ The minimum, −3, is at i = 6. Reading it backwards also works: if Skew₁₀�
 
 **Minimum Skew Problem** (Rosalind BA1F): find all i where Skewᵢ is minimal. One left-to-right pass computes every prefix sum, so it takes O(n) time. In *E. coli* the minimum falls at about position 3,923,620, close to the experimentally known oriC.
 
+:::think Explain, as one chain of reasons, why the skew minimum marks oriC.
+DNA polymerase works in only one direction → each fork has a continuous leading strand and a discontinuous lagging strand → lagging-strand templates sit single-stranded for longer → C→T deamination happens far more often in single-stranded DNA → over evolutionary time one half-strand loses C (and its partner loses G) → walking along the genome, #G − #C falls on one half and rises on the other → the turning point, the minimum, is where the halves meet: **oriC**.
+:::
+
+:::think A new bacterium's skew has its minimum at position 1,500,000 and its maximum at 3,000,000. Where are oriC and terC?
+**oriC ≈ 1,500,000** (the minimum: the skew switches from decreasing to increasing there) and **terC ≈ 3,000,000** (the maximum: the replication forks meet there, roughly opposite oriC on the circle).
+:::
+
+:::think Why compute the skew first and search for words second, not the other way round?
+Cost. Searching for clumps of every 9-mer, with mismatches and reverse complements, across millions of bases is expensive and returns many false candidates. The skew is a single **O(n)** pass that shrinks the search from millions of bases to a few hundred. Running the expensive search only in that window is far faster and far less noisy.
+:::
+
+:::think If deamination turns C into T, why do we track the G−C skew rather than an A−T skew?
+The same mutation also shifts A and T, and many bacteria do show a weak A−T skew. But in practice the G−C skew is the **stronger and more consistent** replication signal across bacterial genomes. A and T composition is pulled around by other forces too, such as which strand genes sit on and codon usage, so the A−T signal is noisier. Researchers sometimes combine both, but G−C skew is the standard first look.
+:::
+
 Here is a short demonstration of drawing the skew diagram and reading oriC off it:
 
 {{video:C2gQTVyq35E}}
@@ -147,6 +187,15 @@ To count "almost matches" we need a distance between strings:
 - $\text{Count}_d(Text, Pattern)$ counts all such approximate occurrences.
 
 **Example (from the slides).** $\text{Count}_1$(`AACAAGCTGATAAACATTTAAAGAG`, `AAAAA`) = **4**: the 5-mers `AACAA`, `ATAAA`, `AAACA` and `AAAGA` each differ from AAAAA in one position. Notice that AAAAA itself never appears in the text. With up to 2 mismatches the count rises to **11** (try it in the widget).
+
+:::think How many 4-mers are within Hamming distance 2 of ACGT?
+Count by exact distance:
+- **Distance 0:** ACGT itself, so **1**.
+- **Distance 1:** choose 1 of 4 positions and one of the 3 other letters there: 4 × 3 = **12** (CCGT, GCGT, TCGT, AAGT, …, ACGG).
+- **Distance 2:** choose 2 of the 4 positions, $\binom{4}{2} = 6$ ways, and 3 × 3 = 9 letter choices for them: 6 × 9 = **54**.
+
+Total: 1 + 12 + 54 = **67**. In general the d-neighbourhood of a k-mer has $\sum_{i=0}^{d}\binom{k}{i}3^i$ members, which grows fast with d. That is why searching with many mismatches gets expensive.
+:::
 
 {{ref:math#distances-and-similarity}}
 
@@ -167,6 +216,10 @@ Only patterns that are close to something in the text ever get counted, which is
 **Adding reverse complements** (Rosalind BA1J): maximize $\text{Count}_d(Text, P) + \text{Count}_d(Text, \overline{P})$, where $\overline{P}$ is the reverse complement of P, because a DnaA box can sit on either strand.
 
 **The payoff.** Applied to a window of about 500 bases around the *E. coli* skew minimum, with k = 9 and d = 1, this finds **TTATCCACA** and its reverse complement **TGTGGATAA**. These are real, experimentally confirmed DnaA boxes. Two weak signals combined (the skew narrows the region, approximate frequent words find the message) solved a problem that neither could solve alone.
+
+:::think The skew has three different positions with the same minimum value. What do you do?
+Treat all three as candidate origins. Run frequent words with mismatches and reverse complements in a window of a few hundred bases around **each** one, and prefer the window with the most convincing cluster of DnaA-box candidates (several near-identical 9-mers on both strands). If none stands out, that is a sign the genome's skew is unusual, and experimental data are needed.
+:::
 
 :::warn Caveats a researcher should know
 - The skew trick works well for many bacteria, but not all: some genomes have weak skews, multiple origins (archaea), or rearrangements that scramble the pattern.

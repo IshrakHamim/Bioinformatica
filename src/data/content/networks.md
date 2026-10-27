@@ -50,6 +50,12 @@ Each row sum is that node's degree (B has 3). We'll use this graph throughout th
 
 **The small-world effect.** PPI networks are highly connected, with **a small diameter, so few steps separate any two proteins, no matter how big the network is**. Typically, the average path length grows only logarithmically with the number of nodes, while local clustering stays high. (It's the biological version of "six degrees of separation".)
 
+:::story An airline route map
+Look at a map of airline routes. Most airports have a handful of routes, while a few hubs (Dubai, Istanbul, Singapore) connect to hundreds. You can get between almost any two cities in two or three flights, because you route through a hub: that is the **small-world** effect. Protein interaction networks look the same: many proteins with few partners, a few hub proteins with very many.
+
+The airline picture also explains robustness. A small regional airport closing barely matters to anyone else (random failure). Closing two or three major hubs strands passengers everywhere (targeted attack).
+:::
+
 :::example The small-world effect and what it implies
 **What it is:** most pairs of nodes are linked by a short path (a small diameter, or an average path length growing like log n), even in very large networks, usually together with high clustering.
 
@@ -74,6 +80,10 @@ Hear it from the scientist who named scale-free networks:
 - **Stable under random failure:** random failures mostly hit low-degree nodes (there are so many of them), and even losing one hub rarely disconnects the network, thanks to the other hubs.
 - **Scale invariance:** properties look similar whatever the network size; hubs keep the small-world effect as the network grows.
 - **Vulnerable to targeted attack:** removing a few major hubs breaks the network into isolated pieces. Hubs are enriched in **essential (lethal-when-deleted) genes**, and many cancer proteins are hubs, **p53** being the classic example.
+
+:::think Hubs are often essential genes and drug targets. Why is that both an opportunity and a risk?
+**Opportunity:** knocking out a hub disrupts many pathways at once, which is what you want against a pathogen or a cancer cell that depends on it. **Risk:** the same hub usually does essential work in healthy cells too, so drugs that hit it tend to be toxic, with many side effects. That is why network medicine often looks for targets that are central to a **disease module** but not to the whole interactome.
+:::
 
 Try both kinds of attack in the widget: remove random nodes, then remove the hubs.
 
@@ -100,6 +110,10 @@ Know these definitions precisely; they are easy to mix up:
 - **Clique:** a set of nodes in which every node is connected to every other.
 - **Network motif:** a small subgraph that is **statistically over-represented** compared with random networks and has a characteristic dynamical behaviour, such as a **negative feedback loop** or a **feed-forward loop**. (Not a hub, and not a component.) The plant circadian clock from the Introduction is a negative feedback loop.
 
+:::think Can two proteins belong to the same module even if they never physically bind?
+Yes. A **module** is a functional unit: its members cooperate in one task but need not interact at the same time or place (think of the successive enzymes of a pathway, linked through a chain of partners). A **protein complex** is stricter: its members bind each other at the same time and place to form one machine. Every complex is part of some module, but not every module is a complex.
+:::
+
 {{ref:intro#gene-regulation-when-and-how-much}}
 
 ## Centrality: which protein matters most?
@@ -118,6 +132,12 @@ A node with closeness 1 is adjacent to every other node.
 $$B(v) = \sum_{s\neq v\neq t}\frac{\sigma_{st}(v)}{\sigma_{st}}$$
 where $\sigma_{st}$ is the number of shortest paths from s to t and $\sigma_{st}(v)$ the number that pass through v. High-betweenness nodes are **bottlenecks** controlling the flow of information between parts of the network, which makes them candidates in signalling pathways and as **drug targets**, even when their degree is low.
 - Others: **eigenvector centrality** and **PageRank** (a node is important if its neighbours are important; computed with random walks).
+
+:::story Degree, closeness and betweenness in one town
+- **Degree** is how many friends you have.
+- **Closeness** is how quickly news from you can reach everyone in town.
+- **Betweenness** is how many of the town's shortest routes pass through your house. A bridge between two halves of a town has enormous betweenness even if it has only two roads: block it and the halves can't talk. Girvan–Newman, below, finds communities by removing exactly these bridges.
+:::
 
 :::example Centralities in three small graphs (check them in the widget)
 **Graph G** (A–B, A–C, B–C, B–D, C–D, D–E): degree(B) = **3**; diameter **3** (A to E). Closeness of B: distances to A, C, D, E are 1, 1, 1, 2, summing to 5, so closeness(B) = 4/5 = **0.8**. Highest betweenness: **D** (= 3), because every shortest path from A, B or C to E must pass through D.

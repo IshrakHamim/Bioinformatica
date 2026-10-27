@@ -18,6 +18,16 @@ TGCATGCA        -TGCATGCA        -TGCATTAA      (slides: three alignments of rel
 
 The first alignment has no gaps but almost every column mismatches. Shifting one sequence by a gap (middle) makes 7 columns match. Gaps model insertions and deletions, which really happen in evolution.
 
+:::story Why Ctrl+F fails biology: the game of telephone
+Pressing Ctrl+F looks for an **exact** match. Hamming distance is a little more forgiving, but only for strings of the same length. Evolution plays a game of telephone over millions of years: letters get **substituted** (CAT → CGT), **inserted** (CAT → CAAT) and **deleted** (CAT → CT). A human gene and its chimpanzee counterpart tell the same story with different spelling, and often different length.
+
+Alignment switches from the computer's question, "are these identical?", to the biologist's question, "how are these related, and which letters correspond?" Allowing gaps is what lets ATGCATGC and TGCATGCA reveal their shared TGCATGC.
+:::
+
+:::think In an alignment of v (top) and w (bottom), is a gap in v an insertion or a deletion?
+Both, depending on your point of view. A letter of w facing a gap in v can be read as an **insertion** into w or a **deletion** from v. Without knowing the ancestor we cannot tell which happened, which is why both are lumped together as an **indel**.
+:::
+
 **Sequence Alignment Problem.** *Input:* sequences $S_1, S_2$ and a scoring function f (scores for each kind of column). *Output:* the alignment that maximizes $f(\text{align}(S_1, S_2))$.
 
 **Scoring.** The score of an alignment is the **sum of its column scores**.
@@ -30,6 +40,14 @@ The first alignment has no gaps but almost every column mismatches. Shifting one
 {{ref:math#logarithms-likelihood-and-log-odds}}
 
 **Why not try every alignment?** The number of possible global alignments of two length-n sequences grows exponentially. It is larger than $\binom{2n}{n} \approx 4^n/\sqrt{\pi n}$, which for n = 100 is already about 10⁵⁹. But each alignment is built from a sequence of small local decisions (align these two letters, or put a gap in one of them), and the best alignment of the whole contains the best alignments of its prefixes. That structure is perfect for **dynamic programming**.
+
+:::story The Manhattan tourist
+A tourist walks from the top-left corner of a city grid to the bottom-right corner, moving only **south** or **east**, and every block has some number of attractions. Which route sees the most?
+
+Aligning x with y is the same walk. Put x down the side and y across the top. A step **diagonally** aligns the next letter of each (match or mismatch), a step **down** uses a letter of x against a gap, and a step **right** uses a letter of y against a gap. Every route from corner to corner is one alignment, and the best alignment is the highest-scoring route.
+
+The trick that saves us: the best route to any intersection must arrive from the intersection above, to the left, or diagonally behind it. So fill in the best score for every intersection from the top-left outward, each one using scores already computed. A chef who makes one batch of syrup and keeps it on the shelf, instead of making it fresh every time a recipe needs it, is doing dynamic programming.
+:::
 
 {{ref:math#counting-how-big-is-the-search-space|algo#dynamic-programming}}
 
@@ -97,6 +115,12 @@ The 0 means "start a fresh alignment here". If the best alignment ending at (i, 
 2. The first row and column are all **0** (an alignment can start anywhere for free).
 3. Traceback starts at the **highest cell anywhere in the table** (the best alignment can end anywhere) and stops at the first **0** (where it started).
 
+:::story Two pictures of local alignment
+**A novel and a sonnet.** You suspect *War and Peace* quotes a Shakespeare sonnet somewhere. Global alignment forces all 1.2 million words of the novel against all 100 words of the poem, piles up penalties, and concludes they are unrelated. Local alignment is a search engine: it ignores everything else and returns the one passage that matches. Biology's version: human and mouse homeobox genes have diverged a lot overall, but both contain a nearly identical **homeodomain** of about 180 nucleotides. Local alignment finds it; global alignment drowns it.
+
+**The free taxi ride.** In the Manhattan picture, the 0 in the recurrence is a free taxi. If the route you're on has gone negative, abandon it and take a taxi to here, starting fresh with score 0. And you can get out wherever the sightseeing was best, rather than walking to the far corner. That is why traceback starts at the **highest cell** and stops at the first **0**.
+:::
+
 **Example (slides).** With a DNA matrix and d = −5, AAG vs AGC: the best local alignment is `AG / AG` with score **4**, while the global score of the same pair is −6. The second-best local alignment, A/A, scores 2.
 
 Watch the local version worked by hand, with the zero floor and the traceback to 0:
@@ -128,12 +152,20 @@ Opening a gap is expensive; extending an existing one is cheap.
 
 **Example:** open −5, extend −1, length 4 → −5 + 3·(−1) = **−8**. Four separate 1-base gaps would cost 4·(−5) = −20, so the affine scheme strongly prefers one long gap.
 
+:::story Parking tickets
+Leave your car in a no-parking zone for three hours and you get **one** ticket. Park illegally three separate times for an hour each and you get **three**. A linear gap penalty is a warden who writes a new ticket for every minute you stay: it punishes one long gap (often a single mutational event, such as polymerase slippage) as if it were many separate events. An affine penalty is one big ticket for opening the gap plus a small fee per extra base, which matches the biology.
+:::
+
 **How to compute it.** The simple recurrence no longer works, because the cost of a gap column depends on whether the previous column was also a gap. The fix (**Gotoh**, 1982) keeps **three DP tables** and still runs in O(nm):
 - **M**(i, j): best score with $x_i$ aligned to $y_j$;
 - **X**(i, j): best score ending with $x_i$ against a gap;
 - **Y**(i, j): best score ending with $y_j$ against a gap.
 
 Entering X or Y from M costs the open penalty; staying in X or Y costs the extend penalty. The slides draw these three tables as **states** with transitions between them. That finite-state picture *is* a **pair HMM**, which you'll meet in the HMM lesson.
+
+:::think Do affine gaps make alignment asymptotically slower?
+No. There are three tables instead of one, so each cell does about three times the work, but that is a constant factor. Time and space stay **O(nm)**.
+:::
 
 {{widget:affine-gap}}
 
@@ -166,6 +198,10 @@ A two-minute recap of seed-and-extend:
 
 If similarity is weak, pairwise alignment may not reveal that two sequences are related. Comparing **many** related sequences at once shows which columns are conserved across the whole family: *"pairwise alignment whispers, multiple alignment shouts."*
 
+:::story Pairwise alignment whispers, multiple alignment shouts
+See the misspelling "bioinfomatics" in one book and you shrug: a random typo. See the same misspelling in ten books by ten authors and you suspect it is not random at all. Likewise, a residue that matches between two proteins may be chance, but a column that stays the same across a whole family of species is almost certainly important for the protein's structure or function. A multiple alignment makes those conserved positions stand out.
+:::
+
 A **t-way alignment** is a matrix with t rows (one per sequence, with gaps) whose columns line up corresponding residues.
 
 **Exact DP generalizes, but badly.** For two sequences the DP table is a 2-D grid; for t sequences it's a t-dimensional grid with about $n^t$ cells. Each cell has up to $2^t - 1$ predecessors (every non-empty subset of the sequences can advance by one letter), giving **$O(n^t\, 2^t)$** time. For 10 proteins of length 300 that is about $300^{10} \cdot 2^{10}$, hopeless. MSA with sum-of-pairs scoring is in fact NP-hard.
@@ -178,6 +214,10 @@ A **t-way alignment** is a matrix with t rows (one per sequence, with gaps) whos
 - **Consistency- and FFT-based methods** (T-Coffee, MAFFT).
 
 **Why MSAs matter downstream:** they feed **profiles and profile HMMs** (HMMER, Pfam) for finding distant family members, **phylogenetic trees** (next lesson), and **AlphaFold**, which reads co-evolution signals from MSA columns to predict 3D contacts.
+
+:::think What is the main weakness of progressive alignment?
+"Once a gap, always a gap." Each pairwise step is locked in before the next sequence is added, so a mistake made early (often while aligning the first, most similar pair) is carried into the final alignment and can never be undone. Iterative refinement (MUSCLE) and consistency-based methods (T-Coffee) exist to soften this.
+:::
 
 ## Summary
 

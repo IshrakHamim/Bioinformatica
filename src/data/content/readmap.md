@@ -2,6 +2,18 @@
 
 **Why not just assemble?** Assembly (previous lessons) rebuilds a genome from scratch, which is hard. If a good reference already exists, and two humans are about 99.9% identical, it is far easier to **match each read against the reference**. That turns the problem into **string matching**: find where a short pattern P (the read, length m) occurs in a huge text T (the genome, length n).
 
+:::story One sentence in a thousand-volume encyclopedia
+You are handed one random sentence and must say exactly which volume, page and line it came from in a 1,000-volume encyclopedia. The sentence is a **read** (the pattern P); the encyclopedia is the **reference genome** (the text T, 3 billion letters). Now do it for a **billion** sentences, some of which contain typos.
+
+The lesson tells how computer science made that possible, in four acts:
+1. **Naive search:** slide the sentence along every line. Correct, hopelessly slow.
+2. **Boyer-Moore:** still slide, but learn from each mismatch and **jump** past places that cannot match.
+3. **An index:** stop sliding. Do a slow, one-time job of building an index, like the one at the back of a book, then look each sentence up almost instantly.
+4. **Pigeonhole:** handle typos by looking up *pieces* of the sentence exactly, then checking the whole sentence only where a piece hit.
+
+The theme throughout: **pay a preprocessing cost once to make the operation you repeat billions of times cheap.**
+:::
+
 ## Naive exact matching
 
 The simplest approach: try every possible starting position (**alignment**) of P in T, and compare characters until one mismatches.
@@ -109,6 +121,10 @@ Boyer-Moore still scans the whole genome for every read. With billions of reads,
 
 **Choosing k (specificity).** Small k gives many hits per k-mer (in a 3-billion-base genome, a given 5-mer occurs millions of times), so verification dominates. Larger k gives fewer, more specific hits, but a read error inside the k-mer means the true location is missed.
 
+:::think Hash table or sorted list for the index?
+**Hash table:** like a magic filing cabinet that tells you the right drawer at once. Lookups are **O(1)** on average, but it uses more memory and keeps no order, so AAAAA and AAAAC land in unrelated places. **Sorted list + binary search:** like a dictionary or phone book. Lookups are **O(log n)**, a little slower, but it is compact and ordered, so you can find all k-mers in an alphabetical range (useful, e.g., for every k-mer starting with a given prefix). With billions of queries the hash table's speed usually wins; when memory is tight, the sorted array (and its compressed descendants, suffix arrays and the FM-index) wins.
+:::
+
 {{ref:algo#hash-maps-counting-things-fast|algo#sorting-binary-search-and-indexes}}
 
 {{widget:kmer-index}}
@@ -127,6 +143,10 @@ Ways to make the index smaller, and what each costs:
 4. **Minimizers.** In each window of w consecutive k-mers, store only the smallest one (according to a hash order). Two overlapping sequences that share a window are guaranteed to pick the same minimizer, so matches aren't lost, and the index shrinks to roughly 2/(w+1) of its full size. This is how **minimap2** indexes for long reads.
 
 **Effect on search efficiency.** A smaller index means fewer memory accesses and better cache use. But each query does more work: multiple seeds or phases, more candidates to verify, and possibly lower sensitivity for short reads with errors. It's a classic **space–time trade-off**.
+
+:::story Why spaced seeds help: searching for "Rob?rt"
+Search a database for the name `Robert` and a typo like `Robart` breaks the exact match. Search instead with a pattern that ignores the fifth letter, `Rob?rt`, and both spellings hit. A **spaced seed** does the same with DNA: with the mask `11011`, the windows `ATGCG` and `ATTCG` both become the key `AT·CG`, so a mismatch at the "don't care" position no longer breaks the lookup. You find more true candidates per lookup, which makes the seeding step of approximate matching more sensitive at a similar index size.
+:::
 
 This talk shows the genome indexes actually used in research tools:
 
@@ -154,6 +174,14 @@ Split P into **k + 1 non-overlapping pieces**. If P occurs in T with at most k e
 2. Around each hit, **verify** the whole of P, allowing up to k mismatches or edits.
 
 **Example.** To find a 50-base read with up to 2 mismatches, split it into 3 pieces of about 17 bases. Any true occurrence contains at least one of the pieces exactly. Exact 17-mer matches are rare in a genome, so there are few candidates to verify.
+
+:::think Why must a mapper also try each read's reverse complement?
+DNA is double-stranded, fragments come from either strand at random, but the reference is written as one strand. A read from the other strand appears in the reference as its **reverse complement**. A mapper that tries only the read as given misses about half of all reads. (The course notebook shows this: many φX174 reads only match once you also search their reverse complements.)
+:::
+
+:::think Hamming distance or edit distance for read mapping?
+**Edit distance.** Hamming distance counts only substitutions and needs equal lengths. Real reads also differ from the reference by small **insertions and deletions**, from sequencing errors (especially in homopolymer runs and long reads) and from real indel variants. One indel shifts every later base, so under Hamming distance the rest of the read looks like mismatches.
+:::
 
 {{video:duatMINEGgE}}
 

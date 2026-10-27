@@ -13,6 +13,7 @@ import { CasinoDecoder, ViterbiTable } from './hmm';
 import { ConfusionWidget, GradientDescentViz, KNNViz, KmerFeaturesViz, LogRegViz, SigmoidWidget } from './ml';
 import { CentralityViz, GirvanNewmanViz, RobustnessViz } from './network';
 import { AlphaFoldViewer, Timeline } from './frontiers';
+import { BigORace, BinarySearchViz, CoinDP, FibTree, GraphSearchViz, HashCount, HierholzerViz, LocalSearchViz } from './algo';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const WIDGETS: Record<string, ComponentType<any>> = {
@@ -61,4 +62,12 @@ export const WIDGETS: Record<string, ComponentType<any>> = {
   'girvan-newman': GirvanNewmanViz,
   alphafold: AlphaFoldViewer,
   timeline: Timeline,
+  bigo: BigORace,
+  'hash-count': HashCount,
+  'binary-search': BinarySearchViz,
+  'coin-dp': CoinDP,
+  'fib-tree': FibTree,
+  'graph-search': GraphSearchViz,
+  hierholzer: HierholzerViz,
+  'local-search': LocalSearchViz,
 };

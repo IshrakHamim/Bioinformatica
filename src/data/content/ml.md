@@ -9,6 +9,10 @@ There are two ways to classify the new lung sample:
 
 When good labels exist, supervised learning is usually far more accurate, because it focuses on the differences that matter for the question. Unsupervised learning finds structure you didn't know to look for (a new tumour subtype, say).
 
+:::story Sorting photos with and without an answer key
+Give someone a thousand unlabelled photos of tissue samples and ask them to sort them into piles: they will group by whatever stands out (staining, lighting, tissue type), which may or may not be tumour vs normal. That is unsupervised learning. Give them the same photos with an answer key for half of them, and they learn to look at **the features that actually distinguish tumour from normal**. That is supervised learning, and it is why labels, when you trust them, usually win.
+:::
+
 {{ref:expression1#k-means-as-an-optimization-problem|expression2#pca-two-equivalent-views}}
 
 **Generative vs discriminative models** (Libbrecht & Noble):
@@ -98,6 +102,10 @@ Supervised feature selection, and any fitted preprocessing such as scaling, must
 - **Large k** smooths too much and underfits.
 - k is a **hyperparameter**, chosen on validation data.
 
+:::story KNN is asking your neighbours
+To guess whether a new house is in a rich or poor neighbourhood, look at the k houses nearest to it. Ask only the **single** nearest (k = 1) and one odd house next door can fool you: that is overfitting. Ask the **whole town** and every house gets the town's majority answer: that is underfitting. A good k asks enough neighbours to outvote the odd one, but not so many that you leave the neighbourhood.
+:::
+
 {{ref:math#distances-and-similarity}}
 
 {{widget:knn}}
@@ -135,6 +143,16 @@ Accuracy barely distinguishes them; recall, F1 and MCC do.
 - **Train–validation–test:** tune hyperparameters (like k in KNN) on the validation set only, and touch the test set once at the end.
 - **k-fold cross-validation:** split into k folds, train on k − 1 and test on the remaining one, rotate, and average. **Stratified** folds keep the class ratio in each fold.
 - An **independent test set** from a different source (another lab, organism or time period) is the gold standard.
+
+:::think Your model scores 0.95 MCC in cross-validation but much worse on another lab's data. What went wrong?
+Common culprits:
+- **Redundancy:** near-identical (homologous) sequences ended up in both training and test folds, so cross-validation measured memorization, not generalization.
+- **Leakage:** feature selection, scaling or tuning used the whole dataset before splitting.
+- **Batch effects and distribution shift:** the new lab uses a different protocol, instrument or population, so the features look different.
+- **Overfitting to a small dataset:** too many features for too few examples.
+
+Remedies: homology-aware splits (cluster sequences, e.g., with CD-HIT, and keep each cluster on one side), doing all fitted preprocessing inside the training folds, and always reporting an independent test set.
+:::
 
 ## Step 7: deployment
 

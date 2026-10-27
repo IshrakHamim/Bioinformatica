@@ -14,6 +14,10 @@ The lecture deck is adapted from Ben Langmead's course on DNA sequencing. His sh
 - **2001:** two draft human genomes were published back to back: the public consortium's in *Nature* and Celera's in *Science*. The "essentially finished" sequence followed in 2003. The last ~8% (centromeres, telomeres, large duplicated regions) had to wait for the **T2T** genome in 2022.
 - Gene count estimates kept falling during the project, from about 100,000 to today's ~20,000 protein-coding genes.
 
+:::think Why did the Department of Energy, not the NIH, first propose the Human Genome Project?
+The DOE grew out of the atomic-energy programme and had studied the effects of **radiation on DNA** for decades, including inherited mutations in survivors of Hiroshima and Nagasaki. Detecting such mutations needed better ways to map and sequence DNA. The DOE also ran national laboratories with the large-scale engineering and computing experience that a genome project required.
+:::
+
 {{widget:timeline}}
 
 ## From Sanger to massively parallel sequencing
@@ -33,6 +37,12 @@ Watch Illumina's own animation first; the steps below name each stage you'll see
 5. **Cleave and repeat.** Chemically remove the dye and the terminator, and repeat for 100–300 cycles. The series of colours a cluster shows over time is its **read**.
 
 The base pairing you learned in the Introduction is what makes this work: the base added in each cycle is the complement of the template base.
+
+:::story Reading a strand by photographing its copy
+We never read the original strand directly. Instead we **build its complementary copy one letter at a time and take a photograph after every letter**. Each new letter glows in its own colour, so the sequence of colours in one spot *is* the sequence of the copy, and by base pairing, of the original.
+
+Why the **reversible terminator** is the heart of the method: it guarantees exactly one letter is added per cycle in *every* cluster at once. Without it, the polymerase would race ahead several letters between photographs and we could not tell how many were added. With it, a billion clusters march in lockstep, one letter per photograph. That lockstep is what "massively parallel" means.
+:::
 
 {{ref:intro#dna-the-four-letter-molecule}}
 
@@ -69,6 +79,10 @@ Each +10 in Q means **10 times fewer errors**:
 - Q = 25: p = 10⁻²·⁵ ≈ 0.0032, about 1 error in 316.
 - **Expected errors in a read:** add the error probabilities. A 100-base read with every base at Q30 has 100 × 0.001 = **0.1** expected errors; the same read at Q20 has 1.
 
+:::think A 100-base read has Q > 30 for its first 70 bases and Q < 15 for its last 30. Map the whole read or a trimmed one?
+Map the **trimmed** read (the first 70 bases). Q < 15 means more than a 3% chance of error per base (Q15 → p ≈ 0.032), so the tail probably contains one or more errors. Those mismatches can make the aligner fail to place the read, lower its score until it is discarded, or worst of all pull it to the **wrong** location. Seventy accurate bases are still long enough to map uniquely in most of the genome. Accuracy beats length.
+:::
+
 {{ref:math#logarithms-likelihood-and-log-odds}}
 
 ## FASTQ files and Phred+33
@@ -100,6 +114,21 @@ def phred33ToQ(ch):  return ord(ch) - 33
 {{widget:phred}}
 
 {{game:phred-flash}}
+
+:::think Decode the quality string `#!J`.
+Subtract 33 from each ASCII code: `#` is 35 → **Q = 2**; `!` is 33 → **Q = 0**; `J` is 74 → **Q = 41**. The first two bases are essentially guesses (Q0 means p = 1); the third is wrong less than once in 10,000 calls.
+:::
+
+:::example Cleaning a FASTQ file before analysis (quality control)
+Never trust raw reads. A standard first step, before assembly, mapping or variant calling:
+
+1. **Look first.** Run **FastQC** (or MultiQC over many files). It plots quality by position, GC content, adapter content and duplication levels, so you can see what is wrong before fixing it.
+2. **Trim adapters.** If a DNA fragment is shorter than the read length, the sequencer reads past the fragment into the adapter on the other end. Those adapter letters are not from the genome and must be cut off.
+3. **Trim low-quality bases.** A common method is a **sliding window**: move a window of 4–5 bases along the read and cut the read where the window's mean quality drops below a threshold (e.g., Q20). Many tools also clip low-quality bases at the very start and end.
+4. **Drop reads that became too short** (e.g., under 30–50 bases): short reads map ambiguously.
+
+Tools that do steps 2–4: **fastp**, **cutadapt**, **Trimmomatic**. Run FastQC again afterwards to confirm the problem is fixed.
+:::
 
 :::cs From the course notebook (Sequence_reads.ipynb)
 The notebook reads the φX174 genome from a FASTA file (skipping lines that start with `>`), parses a FASTQ file (lines 2 and 4 of every group of 4), builds a **histogram of base qualities**, plots **GC content by position in the read** and **mean quality by position**, and then maps reads to the genome by naive exact matching. At first only some reads match. They match much better once you (1) use only the first 30 bases of each read, where errors are rare, and (2) also search for the **reverse complement**, because reads come from both strands.

@@ -63,3 +63,22 @@ export const TRACKS: Track[] = [
 
 /** Section ids of a module (for progress accounting). */
 export const sectionsOf = (m: Module) => splitSections(m.content);
+
+/** Bangla lesson text by module id (src/data/content/bn/<id>.md); a module without one stays in English. */
+export const BN_CONTENT: Record<string, string> = Object.fromEntries(
+  Object.entries(import.meta.glob('./content/bn/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>).map(([path, md]) => [
+    path.replace(/^.*\/(.+)\.md$/, '$1'),
+    md,
+  ]),
+);
+
+/**
+ * The module's sections in the requested language. Section ids always come from the English text (they key progress
+ * and refreshers); a translation is used only if it has the same number of sections.
+ */
+export function localizedSections(m: Module, lang: 'en' | 'bn') {
+  const en = sectionsOf(m);
+  const bn = lang === 'bn' && BN_CONTENT[m.id] ? splitSections(BN_CONTENT[m.id]) : null;
+  if (!bn || bn.length !== en.length) return { secs: en, translated: false };
+  return { secs: en.map((s, i) => ({ ...s, title: s.id === 'overview' ? 'ভূমিকা' : bn[i].title, body: bn[i].body })), translated: true };
+}

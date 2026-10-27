@@ -30,6 +30,12 @@ Watch this StatQuest video first: it works through exactly the derivation on the
 - if the slope is positive, decrease w;
 - a steeper slope (further from the minimum) gives a bigger step.
 
+:::story Walking down a hill in thick fog
+You are on a hillside in fog so thick you can only feel the ground under your feet, and you want to reach the valley floor. The sensible strategy: feel which way the ground slopes, take a step downhill, and repeat. Where the slope is steep, take bigger steps; as the ground flattens, your steps shrink and you settle at the bottom.
+
+The height is the error, your position is the weights, the slope you feel is the **gradient**, and your stride is the **learning rate α**. Take strides that are too long and you overshoot the valley and land on the opposite slope, possibly higher than before. That is divergence.
+:::
+
 The **learning rate α** scales the steps:
 
 $$w_j \leftarrow w_j - \alpha\,\frac{\partial e}{\partial w_j}$$
@@ -92,6 +98,10 @@ This video shows how a network learns by gradient descent on its cost landscape:
 
 **Wide vs deep.** A single, very wide hidden layer can in principle approximate any function, but **deep** networks (many layers) learn hierarchical features far more efficiently: early layers detect simple patterns, later layers combine them. In a DNA model, early filters might detect short motifs and later layers combinations of motifs. That is the core of deep learning.
 
+:::think Why does a neural network need a non-linear activation at all?
+Without it, every layer computes a linear function of the previous one, and a chain of linear functions is just **one** linear function. A 50-layer network without activations is no more powerful than logistic regression without its sigmoid, a single straight boundary. The non-linearity between layers (sigmoid, ReLU) is what lets stacked layers bend the decision boundary and build features from features.
+:::
+
 **Architectures you'll meet in bioinformatics:**
 - **CNNs** (convolutional networks) slide learned filters along a sequence, like motif scanners: DeepBind and DeepSEA (2015).
 - **RNNs/LSTMs** process sequences step by step.
@@ -105,6 +115,10 @@ An **autoencoder** is a network trained **without labels** to reproduce its own 
 - a **decoder** $\hat{x} = h(z)$ that reconstructs the input from the code.
 
 Training minimizes the reconstruction error $\|x - \hat{x}\|^2$. The output is useless by itself (it's a copy of the input); the useful part is the **code z**, a compact representation learned from the data.
+
+:::story Summarize the book in a tweet, then rewrite the book
+Imagine you must compress a whole book into one short tweet, and a second person must rewrite the book from your tweet alone. To succeed you can only keep what really matters: the plot, the main characters. The rewritten book is never the point; the **tweet** is. An autoencoder's encoder writes the tweet (the code z), its decoder rewrites the book (the reconstruction), and the code is the compact representation we keep and use for clustering, visualization, imputation or classification.
+:::
 
 This five-minute video explains the encoder–decoder idea:
 

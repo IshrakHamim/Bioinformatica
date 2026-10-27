@@ -24,6 +24,12 @@ Watch this five-minute StatQuest video to get the intuition before the details:
 
 **Principal component analysis** finds new axes, called **principal components (PCs)**, that are orthogonal to each other and ordered by importance. Keeping the first few PCs and dropping the rest compresses the data with as little loss as possible.
 
+:::story The pencil
+Hold a pencil in the air. Every point on it has three coordinates (x, y, z), but is a pencil really three-dimensional? Nearly all of its shape is captured by **one** number: how far along the pencil's length a point sits. Draw a new axis through the pencil's core, project every point onto it, and you have gone from 3 dimensions to 1 while keeping the most important information.
+
+PCA finds that kind of axis automatically. In gene-expression data the "pencil" is the direction along which samples differ the most, often a real biological signal such as tumour vs normal.
+:::
+
 "As little loss as possible" has two equivalent meanings. Projecting the data onto the first few PCs:
 1. **maximizes the variance** of the projected data (the points stay as spread out as possible), or equivalently
 2. **minimizes the reconstruction error** (the average squared distance between each point and its projection).
@@ -63,6 +69,18 @@ If eigenvectors still feel abstract, this is the best visual explanation of what
 
 **In practice** PCA is computed with the **singular value decomposition (SVD)** of the centered data matrix, which is numerically more stable and never has to form the huge matrix Q. In scRNA-seq, the standard pipeline runs PCA down to about 50 components first, then does clustering and t-SNE/UMAP on those 50, which removes noise and speeds everything up.
 
+:::think PC1 and PC2 together explain only 15% of the variance. Can you trust the PCA plot?
+Be careful. The plot shows only 15% of the variation, and 85% is invisible in it. The data's structure is spread across many directions, so groups that look mixed in the plot may separate on later components, and apparent groupings may be weak. Check the scree plot, look at more components, or try a non-linear method for visualization.
+:::
+
+:::think PC1 separates healthy from cancer samples. Can PCA tell you which genes drive that difference?
+Yes. Each principal component is a weighted sum of the original genes, and the weights are called **loadings**. Genes with large absolute loadings on PC1 contribute most to the direction that separates the groups, which makes them good candidates for follow-up (and for checking against a proper differential-expression test).
+:::
+
+:::think How many components should you keep?
+Two common rules: (1) the **elbow** of the scree plot, where adding a component stops buying much variance; (2) a **cumulative-variance threshold**: add PCs until they explain, say, 80–90% of the variance. For plotting you keep 2 or 3; as input to clustering (e.g., in single-cell analysis) people often keep 10–50.
+:::
+
 ## Preserving distances vs preserving neighborhoods
 
 PCA keeps the directions of largest variance. A different goal is to place points in 2-D so that their **pairwise distances** match the original ones as closely as possible.
@@ -72,6 +90,13 @@ PCA keeps the directions of largest variance. A different goal is to place point
 $$C = \frac{1}{a}\sum_{ij} w_{ij}\big(d_X(x_i,x_j) - d_Y(y_i,y_j)\big)^2$$
 
 The problem: in high dimensions, **large distances are unreliable** (noise accumulates over thousands of genes) and hard to reproduce in 2-D. For revealing clusters, we care most about **who is near whom**, not about exact large distances.
+
+:::story Two kinds of map
+- **MDS** draws a map that keeps **distances**: if two cities are 100 km apart, they should be 10 cm apart on the map, and every pair counts.
+- **SNE** draws a map that keeps **neighbourhoods**: if town B is town A's closest neighbour, it should still be A's closest neighbour on the map, even if the exact scale is off. Far-away pairs barely matter.
+
+For finding clusters (cell types, groups of co-expressed genes), the neighbourhood map is usually what you want, because the large distances in thousands of dimensions are mostly noise anyway.
+:::
 
 **Neighbourhoods as probabilities.** A *hard* neighbourhood says "j is a neighbour of i, or not". A *soft* neighbourhood gives each point j a **probability** of being picked as i's neighbour, which decreases with distance, using a Gaussian centred on i:
 
@@ -144,3 +169,7 @@ This probability falls off slowly with distance, so moderately distant points ca
 | Local clusters | may blur | may blur | very clear |
 | Deterministic | yes | yes (classical MDS) | no (random initialization) |
 | Typical use | preprocessing, first look, variance explained | visualizing a distance matrix | visualizing clusters, e.g., cell types |
+
+:::think You have 1 million cells × 50 features and want inputs for a classifier. PCA or t-SNE?
+**PCA.** It scales to a million points, it is deterministic, and it gives a real **transformation**: you can save it and apply exactly the same projection to new samples later, which a classifier pipeline needs. t-SNE is slow for very many points, gives different layouts on different runs, and has no way to place a new point without rerunning the whole optimization. It is a visualization tool, not a feature extractor.
+:::

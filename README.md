@@ -9,12 +9,13 @@ Written for a beginner graduate student with a CS background: every biological i
 | | |
 |---|---|
 | **20 modules** | 3 foundations (math, algorithms, data/tools) · 14 course lectures L01–L15 · 3 frontiers |
-| **45 interactive widgets** | skew diagrams, Gibbs sampler race, de Bruijn graph + Euler path animation, Illumina SBS simulator, Boyer-Moore stepper, k-mer index, k-means / soft k-means / hierarchical clustering, PCA, in-browser t-SNE, NW/SW DP tables, UPGMA / NJ / Fitch, Viterbi & Forward tables, casino HMM, logistic regression with class weights, network centralities, scale-free robustness, Girvan–Newman, a live AlphaFold DB 3D viewer… |
+| **53 interactive widgets** | growth-rate race, animated hash map, binary search, DP table fill, Fibonacci recursion tree, BFS vs DFS, Hierholzer's algorithm, local search with restarts, skew diagrams, Gibbs sampler race, de Bruijn graph + Euler path animation, Illumina SBS simulator, Boyer-Moore stepper, k-mer index, k-means / soft k-means / hierarchical clustering, PCA, in-browser t-SNE, NW/SW DP tables, UPGMA / NJ / Fitch, Viterbi & Forward tables, casino HMM, logistic regression with class weights, network centralities, scale-free robustness, Girvan–Newman, a live AlphaFold DB 3D viewer… |
 | **Practice** | a quiz and worked practice problems in every module (adapted from the course quizzes and exams, solutions computed by the site's own unit-tested algorithms); a mixed checkpoint quiz for each learning path |
 | **Gamification** | XP, levels, streaks, 17 badges, 13 mini-games with high scores, each embedded in the lesson it practises |
 | **Study tools** | 170 flashcards (Leitner spaced repetition), per-module and whole-course mind maps, a 154-concept prerequisite graph, glossary and full-text search |
-| **Videos in the lessons** | 74 YouTube videos (each checked to exist), placed inside the lessons where they help: before a section that is easier after watching, or after it as a recap |
+| **Videos in the lessons** | 92 YouTube videos (each checked to exist), including Abdul Bari and Striver (take U forward) lectures in the Algorithms foundation, placed inside the lessons where they help: before a section that is easier after watching, or after it as a recap |
 | **Foundation refreshers** | lessons link to the exact math, algorithms or tools section they rely on; it opens inline, so you never have to finish the foundations first |
+| **বাংলা** | every lesson has a Bangla explanation (technical terms stay in English); the English \| বাংলা switch at the top of a lesson sets the whole page, and each section has its own switch |
 | **Further reading** | primary papers and docs, Rosalind problems for every algorithm |
 
 ## Progress tracking across devices
@@ -51,8 +52,10 @@ The site uses hash routing and relative asset paths, so the same build works at 
    - mini-games: `{{game:id}}` (registry in `src/games/registry.ts`; the game's `module` must be this module),
    - videos: `{{video:VIDEO_ID}}` on its own line, where the video helps; list the video (title, channel, a one-line "why") in the module's `videos`. Every listed video must be placed exactly once, since videos only appear inside lessons,
    - foundation refreshers: `{{ref:math#bayes-rule|algo#dynamic-programming}}` (module id `#` section id, the section heading in kebab case), next to the step that needs it,
-   - callouts: `:::tip Title` … `:::` (types: tip, bio, cs, warn, exam, sota),
+   - callouts: `:::tip Title` … `:::` (types: tip, bio, cs, warn, exam, example, sota, and `story` for analogies and big-picture narratives),
+   - check-yourself questions: `:::think Question?` … `:::`, which shows the question and reveals the answer (the body) on click,
    - math: `$inline$` and `$$display$$` (KaTeX).
+   - a Bangla version: `src/data/content/bn/<id>.md`, with the same `##` sections and the same embeds and callouts in the same order (a test checks this). Keep technical terms in English and explain the rest naturally rather than translating word by word. A module without one is shown in English.
 2. Describe the module in `src/data/modules/<id>.ts` (copy an existing one): quiz, flashcards, mind map, practice problems, videos, articles, prerequisites, concepts.
 3. Import it in `src/data/index.ts` and add its id to the `biotech` track.
 4. Add any new concepts to `src/data/concepts.ts` so they appear in the knowledge graph.

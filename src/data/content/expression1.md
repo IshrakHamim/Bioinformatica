@@ -79,6 +79,12 @@ gene C     8.0   6.1   4.0   2.0     falls
 - If a gene of unknown function has a vector resembling a known gene's, they may be involved in related processes.
 - Typical studies: before vs after a drug, cancer vs normal tissue, a time course of development.
 
+:::story Finding the "sectors" in a stock market
+Track the daily price of thousands of companies for a year. Nobody tells you which industry each company is in, yet the airline stocks rise and fall together, and so do the oil stocks. Group companies by the *shape* of their price curves and you rediscover "airlines" and "oil" from the data alone.
+
+Clustering genes is the same idea: genes are the companies, conditions are the days, expression is the price. Genes that rise and fall together are probably switched by the same transcription factor or work in the same pathway. This is **guilt by association**: if 9 genes in a cluster are known to work in metabolism, the 10th, unknown one is a good bet for metabolism too. And a tight cluster of co-regulated genes is the natural input for motif finding, to look for the shared switch upstream of them.
+:::
+
 **Each gene is a point in m-dimensional space** (or, transposing the matrix, each sample is a point in n-dimensional gene space). Clustering groups nearby points. What "nearby" means depends on the distance: Euclidean distance puts A and B fairly far apart because their *levels* differ, while correlation distance puts them together because their *shapes* match.
 
 **Log transformation.** Expression values are usually log-transformed (e.g., log₂) before analysis. Expression changes are multiplicative (a gene going from 10 to 20 is as big a change as 1,000 to 2,000), and raw values are heavy-tailed, so a few very highly expressed genes would dominate distances.
@@ -135,6 +141,14 @@ Watch this StatQuest video for a visual walk-through of the algorithm and of cho
 :::
 
 **Outliers.** The mean is not robust: a few points at [100, 100] drag a center far away (or grab a whole cluster for themselves), distorting every other cluster. Handle them by removing or capping outliers, log-transforming, using **k-medoids or k-medians** (centers must be actual data points, or medians), or density-based methods such as DBSCAN.
+
+:::think You run k-means twice on the same data and get two different clusterings. Is something broken?
+No. Lloyd's algorithm starts from (usually random) initial centers and only ever walks downhill in distortion, so different starts can end in different **local minima**. Use k-means++ initialization, run many restarts, and keep the result with the lowest distortion.
+:::
+
+:::think Your data form two long, thin, parallel clusters, and you run k-means with k = 2. What happens?
+k-means assigns each point to its nearest center, which carves space into convex, roughly round regions. Two long parallel strips are not round, so k-means will likely cut **across** both strips, giving each center the nearby halves of both, instead of separating the strips. Single-linkage hierarchical clustering or a density-based method (DBSCAN), which follow chains of nearby points, handle this shape far better.
+:::
 
 ## Initialization and k-means++
 
@@ -220,3 +234,14 @@ Single linkage tends to **chain** clusters together through intermediate points;
 {{widget:hclust}}
 
 Heatmaps with dendrograms on both axes (genes × samples, each axis reordered by its tree) are the iconic figure of expression papers.
+
+:::think 10,000 genes, 50 conditions: hierarchical clustering or k-means?
+Hierarchical clustering needs all pairwise distances: about 5 × 10⁷ pairs, and at least O(n²) time (naive implementations O(n³)), recomputing distances after each of the 9,999 merges. That is feasible on a modern computer but slow and memory-hungry, and it grows quadratically. k-means costs O(n · k · m) per iteration (n genes, k clusters, m conditions), so it scales easily. For very large n (say a million cells), k-means or graph-based methods are the practical choice; for a few thousand items, hierarchical clustering's full tree is worth the cost.
+:::
+
+:::think What are the weak spots of hierarchical clustering?
+1. **Cost:** at least quadratic in the number of items.
+2. **No undo:** it is greedy, and a bad early merge (e.g., caused by an outlier) can never be reversed.
+3. **The linkage choice matters:** single, average and complete linkage can give quite different trees, and none is right for every dataset.
+4. **Where to cut the dendrogram** to get clusters is a judgement call.
+:::

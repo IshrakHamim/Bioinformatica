@@ -77,6 +77,15 @@ This lecture derives the de Bruijn graph idea with clear examples. It is the mos
 
 Now the genome is a walk that uses **every edge exactly once**: an **Eulerian path**. And unlike Hamiltonian paths, Eulerian paths are easy to find, in linear time.
 
+:::story The single most important idea in this lesson
+Both graphs describe the **same** reads and the same overlaps. The only thing we changed is what we call a node:
+
+- **Reads as nodes** (overlap graph): rebuilding the genome means visiting every *node* once. That is the Hamiltonian path problem, with no known efficient algorithm.
+- **Reads as edges** (de Bruijn graph): rebuilding the genome means walking every *edge* once. That is the Eulerian path problem, which Euler solved in 1735 and which runs in linear time.
+
+Same data, different representation, and an impossible problem becomes an easy one. When an algorithm seems hopeless, try changing how you model the data before you try a cleverer search.
+:::
+
 :::cs Euler's theorem (directed version)
 A node is **balanced** if its in-degree equals its out-degree. **Every balanced, strongly connected directed graph has an Eulerian cycle.** A graph has an Eulerian **path** if and only if it is connected and balanced except for exactly two nodes: a **start** with out = in + 1 and an **end** with in = out + 1. Adding a temporary edge end → start balances the graph; find a cycle, then cut that edge to get the path.
 :::
@@ -131,6 +140,18 @@ Now relax the assumptions one by one. This lecture shows what real assemblers do
 **Contigs.** Even after read breaking, coverage gaps and repeats prevent a single Eulerian path through the whole genome. So assemblers output **contigs**: long contiguous stretches that can be assembled unambiguously. In graph terms, a contig is a **maximal non-branching path**: a path whose internal nodes each have exactly one edge in and one edge out. Wherever the graph branches (a repeat) or ends (a coverage gap), a contig stops. Contigs are then ordered and oriented into **scaffolds** using read pairs.
 
 **Sequencing errors → bubbles and tips.** A single error in a read changes up to k of its k-mers, creating edges that aren't in the genome. For example, `CGTACGGACA` and the erroneous `CGTATGGACA` share their beginning and end but differ in the middle, so the graph gets a **bubble**: two alternative paths between the same pair of nodes. An error near a read's end creates a dead-end **tip**. Because each error is rare, erroneous k-mers have **low counts**. Assemblers count k-mers, discard rare ones, trim tips and pop bubbles.
+
+:::think Does a de Bruijn graph always have a single Eulerian path? What does that mean for assembly?
+No. A repeat longer than k − 1 creates a node with several edges in and several out, so there are several Eulerian paths, each spelling a different possible genome, and the graph alone cannot say which is real. That ambiguity, not finding the path, is what makes assembly hard. The remedies all add longer-range information: a larger k (if reads allow it), **read pairs** that span the repeat, and **long reads** that cover it entirely.
+:::
+
+:::think What happens to the de Bruijn graph as k grows? Then why not just use very long k?
+A larger k means fewer (k − 1)-mers repeat in the genome, so the graph has fewer branches and becomes simpler. If k exceeds the longest repeat, the graph is a single path. But k can't exceed the read length, and reads must cover every k-mer: the longer the k, the more likely some genome k-mer was never read (coverage gaps), and the more likely a read error lands inside it. For years technology offered short accurate reads or long error-prone ones, never both, which is why read breaking (smaller k) and read pairs were so important.
+:::
+
+:::think A real assembly gives you hundreds of contigs instead of one chromosome. Why?
+Two reasons. **Coverage gaps:** k-mers that were never read leave missing edges, so the path breaks. **Repeats:** where the graph branches, the assembler cannot choose a path safely, so it stops the contig there and starts a new one on the other side. Scaffolding with read pairs (and long reads) then orders and orients the contigs.
+:::
 
 :::example From the classroom assumptions to real assemblers
 | Assumption in class | Reality | What assemblers do |

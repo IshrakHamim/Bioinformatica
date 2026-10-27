@@ -40,6 +40,18 @@ Genomes make this concrete. The human genome has n ≈ 3 × 10⁹ letters, and a
 
 So any algorithm that touches the whole genome must be close to linear. And **memory matters as much as time**: an index that stores 8 bytes for each of 3 × 10⁹ positions needs 24 GB.
 
+Press Play and watch the same six growth rates race as n grows from 10 to the size of a genome:
+
+{{widget:bigo}}
+
+For the formal definitions (Big-O as an upper bound, Omega as a lower bound, Theta as a tight bound), Abdul Bari's lecture is the classic explanation:
+
+{{video:A03oI0znAoc}}
+
+Striver's lecture shows how to read the complexity off real code: count the loops, and remember that memory counts too.
+
+{{video:FPu9Uld7W-E}}
+
 How the course's problems improve once you find the right idea:
 
 | Problem | Brute force | Better |
@@ -72,15 +84,37 @@ print([k for k, c in freq.items() if c == best])   # ['GCAT', 'CATG'], each 3 ti
 
 One pass over the text, O(1) work per k-mer (plus O(k) to slice it): O(nk) total, versus O(n²k) for counting each pattern separately by rescanning the text.
 
+Watch the frequency table being built. Each window is hashed straight to one bucket, so no step ever searches the whole table:
+
+{{widget:hash-count}}
+
 The same idea builds **k-mer indexes** (k-mer → list of positions, Read Mapping lesson), **de Bruijn graphs** (glue identical (k − 1)-mers into one node, Assembly lesson), and **k-mer feature vectors** for machine learning.
 
 **Trade-off:** hash maps are fast but memory-hungry (pointers, empty buckets). When memory is tight, use sorted arrays instead (next section).
+
+Abdul Bari explains what happens inside a hash table (hash functions, buckets, collisions):
+
+{{video:mFY0J5W8Udk}}
+
+Striver's lecture uses hashing for exactly our purpose, counting how often each element occurs:
+
+{{video:KEs5UyBJ39g}}
 
 ## Sorting, binary search and indexes
 
 **Binary search** finds an item in a **sorted** array of n items by repeatedly halving the range: O(log n) comparisons. For 3 × 10⁹ items that is only about 32 comparisons.
 
 **Sorted k-mer index.** Make a list of (k-mer, position) pairs for every position in the genome and sort it by k-mer. To find all occurrences of a query k-mer, binary-search for the first entry with that key and read forward while the key matches. In Python, `bisect.bisect_left` does the search.
+
+Step through a lookup in a small sorted index. Faded entries have been ruled out; the red box is the middle entry being compared:
+
+{{widget:binary-search}}
+
+Abdul Bari traces the iterative algorithm by hand, and Striver adds the real-life intuition and the classic overflow bug in `(lo + hi) / 2`:
+
+{{video:C2apEw9pgtw}}
+
+{{video:MHf6awe89xw}}
 
 | | Hash table | Sorted array + binary search |
 |---|---|---|
@@ -94,6 +128,10 @@ The same idea builds **k-mer indexes** (k-mer → list of positions, Read Mappin
 
 A **greedy** algorithm makes the choice that looks best right now and never revisits it.
 
+Abdul Bari's introduction to the greedy method:
+
+{{video:ARvQcqJ_-NY}}
+
 **Example where greedy fails: making change.** Pay 8 with coins {1, 4, 5}. Greedy takes the largest coin that fits: 5, then 1, 1, 1 (four coins). The optimum is 4 + 4 (two coins). The early choice of 5 looked good locally but ruled out the best solution.
 
 Greedy is correct only when the problem has a **greedy-choice property** you can prove (e.g., Dijkstra's shortest paths, Huffman coding). Otherwise, treat greedy as a fast **heuristic** and compare it against smarter methods.
@@ -106,6 +144,16 @@ In the course: **GreedyMotifSearch** picks the most probable k-mer in each strin
 
 - **optimal substructure:** the best solution contains best solutions to subproblems, and
 - **overlapping subproblems:** the same subproblems recur many times, so storing them avoids recomputation.
+
+The quickest way to *see* overlapping subproblems is the recursion tree of Fibonacci numbers, fib(n) = fib(n − 1) + fib(n − 2). Play it without memoization and watch the same calls (red) being solved again and again; then tick "memoize":
+
+{{widget:fib-tree}}
+
+Striver builds dynamic programming from exactly this example (memoization → tabulation → space optimization), and Abdul Bari explains the principle of optimality behind it:
+
+{{video:tyB0ztf0DNY}}
+
+{{video:5dRGRueKU3M}}
 
 **The four-step recipe:**
 1. **Define the subproblem** precisely (e.g., "MinCoins(m) = fewest coins that make m").
@@ -123,11 +171,19 @@ $$\text{MinCoins}(m) = \min_{c \in \{1,4,5\},\ c \le m}\ \text{MinCoins}(m - c) 
 
 For m = 8 the options are MinCoins(7) + 1 = 4, MinCoins(4) + 1 = **2**, MinCoins(3) + 1 = 4, so the answer is 2 (traceback: 8 → 4 → 0, two 4-coins). Greedy got 4. DP considers every choice at every step, but each subproblem is solved only once.
 
+Now watch the table fill itself. At each cell, the highlighted cells are the subproblems it looks at; after the last cell, the traceback lights up the coins used. Try coins {1, 3, 4} and amount 6 for another case where greedy fails:
+
+{{widget:coin-dp}}
+
 **From 1-D to 2-D: alignment.** For two strings x and y, the subproblem is "best score aligning the first i letters of x with the first j letters of y". Each cell F(i, j) depends on three neighbours (left, up, diagonal), and the table has (n+1)(m+1) cells, giving O(nm) time. Edit distance, Needleman–Wunsch, Smith–Waterman and affine gaps are all this pattern. The video below derives it for edit distance from first principles.
 
 {{video:8Q2IEIY2pDU}}
 
 **DP in this course:** edit distance (Read Mapping), global/local alignment and affine gaps (Sequence Alignment), Viterbi and Forward (HMMs), small parsimony (Phylogeny), the Change and Manhattan Tourist problems (textbook warm-ups).
+
+Abdul Bari's longest common subsequence (LCS) lecture is the best warm-up for sequence alignment: the table, the three neighbours and the traceback are the same, only the scores differ.
+
+{{video:sSno9rV8Rhg}}
 
 ## Randomized algorithms
 
@@ -136,13 +192,25 @@ Randomized algorithms make random choices. Two kinds:
 - **Monte Carlo:** fast, but the answer may be wrong or suboptimal. Run many times and keep the best. RandomizedMotifSearch and Gibbs sampling are Monte Carlo.
 - **Las Vegas:** always correct; only the running time is random. Randomized quicksort is the classic example.
 
+Abdul Bari's quicksort lecture explains the algorithm and the role of the pivot. Choosing the pivot at random (randomized quicksort) makes the slow case unlikely on every input while the output is always correctly sorted: the textbook Las Vegas algorithm.
+
+{{video:7h1s2SojIRw}}
+
 **Why randomness helps.** Deterministic local search can get stuck in the same bad local optimum every time. Random restarts explore different regions of the search space, and random *moves* (Gibbs sampling choosing a k-mer with probability proportional to its score, instead of always the best) let a search climb out of a local optimum.
+
+See it happen. Each dot is one run (a "hiker") dropped at a random start:
+
+{{widget:local-search}}
 
 **Practical habits:** set a **random seed** so results are reproducible; run **many restarts**; report the best and how often it was found. How to draw from a distribution is in the Math foundation (*Sampling*).
 
 ## Graphs: the basics
 
 A **graph** is a set of **nodes** (vertices) joined by **edges**. It is the natural data structure for anything made of relationships:
+
+Striver's introduction covers the vocabulary below (directed, undirected, degree, paths, cycles, weights) with pictures:
+
+{{video:M3_pLsDdeuU}}
 
 | In the course | Nodes | Edges |
 |---|---|---|
@@ -187,6 +255,18 @@ Running BFS from every node gives all shortest-path distances, hence the **diame
 
 **Depth-first search (DFS)** goes as deep as possible along one branch before backtracking, using a stack or recursion. It finds connected components, detects cycles, and is the skeleton of **Hierholzer's algorithm** for Eulerian cycles (next section).
 
+Compare the two on the same graph. Switch between BFS and DFS and watch the queue grow at the back while the stack grows on top:
+
+{{widget:graph-search}}
+
+Abdul Bari traces both traversals on one graph, and Striver's two lectures build each one with its queue or recursion stack:
+
+{{video:pcKY4hjDrxk}}
+
+{{video:-tgVpUgsQ5k}}
+
+{{video:Qzf1a--rhp8}}
+
 ## Eulerian and Hamiltonian paths
 
 Two questions that sound almost identical:
@@ -196,12 +276,20 @@ Two questions that sound almost identical:
 
 Their difficulty is completely different. **Eulerian** paths can be found in linear time, O(|E|). **Hamiltonian** paths are **NP-complete**: no efficient algorithm is known.
 
+To feel why Hamiltonian paths are hard, watch Abdul Bari search for a Hamiltonian cycle by backtracking: the search tree branches at every node, and nothing like Euler's degree rule lets you skip it.
+
+{{video:dQr4wZCiJJ4}}
+
 **Euler's theorem (directed graphs).** A node is **balanced** if in-degree = out-degree. A connected directed graph has an **Eulerian cycle** iff every node is balanced. It has an **Eulerian path** iff all nodes are balanced except two: a start with out = in + 1 and an end with in = out + 1.
 
 **Hierholzer's algorithm:**
 1. Start at the start node (or anywhere, for a cycle) and keep walking along unused edges until you get stuck.
 2. If unused edges remain, pick a node on your walk that still has unused edges, walk a new cycle from there, and splice it into the walk.
 3. Repeat until every edge is used.
+
+Here is the stack version of Hierholzer's algorithm at work on genome reads. Each read is an edge from its prefix to its suffix; the path it finds spells the genome:
+
+{{widget:hierholzer}}
 
 **Why it matters:** genome assembly can be posed either way. In an *overlap graph* (reads = nodes) the genome is a Hamiltonian path, which is intractable. In a *de Bruijn graph* (reads = edges) it is an Eulerian path, which is easy. Choosing the representation turned an impossible problem into a linear-time one.
 
@@ -212,6 +300,10 @@ Their difficulty is completely different. **Eulerian** paths can be found in lin
 A **tree** is a connected graph with no cycles. A tree with n nodes has exactly n − 1 edges. A **rooted** tree designates one node as the root; every other node has a **parent**, and nodes without children are **leaves**.
 
 Trees are naturally processed by **recursion**: solve the problem for each child's subtree, then combine at the parent.
+
+If recursion still feels slippery, Striver's lecture draws the recursion tree and the call stack for small examples:
+
+{{video:yVdKa8dnKiE}}
 
 ```python
 def leaves(tree, node):
@@ -245,9 +337,17 @@ So **alternate**: fix one, solve for the other, swap, repeat until nothing chang
 
 Each step never makes the objective worse, so the process converges, but only to a **local optimum** that depends on where you started. Initialization (e.g., k-means++) and multiple restarts matter.
 
+Watch the alternation in k-means: assign points to the nearest center, move each center to the mean of its points, repeat. Different starts can end in different local optima.
+
+{{widget:kmeans}}
+
 ## NP-hardness and heuristics
 
 A problem is **NP-hard** if an efficient (polynomial-time) algorithm for it would give efficient algorithms for a huge class of problems believed to have none. In practice: **don't expect an exact, fast algorithm for large inputs.**
+
+Abdul Bari's lecture on P, NP, NP-hard and NP-complete gives the formal picture, including what a reduction is:
+
+{{video:e2cF8a5aAhE}}
 
 NP-hard problems in the course:
 - **Hamiltonian path** (overlap-graph assembly)

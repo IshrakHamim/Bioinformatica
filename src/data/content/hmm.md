@@ -18,6 +18,17 @@ The **log-odds score** $\log_2 \frac{0.0078}{0.0016} \approx 2.25 > 0$ favours "
 
 **Case 2: the casino secretly switches coins**, with probability 0.1 after each flip. Now the question is different: *which coin was used at each position?* The coin is a **hidden state** that changes over time, and each flip is an **observation** that depends on the current state. That's an HMM.
 
+:::story Two layers of reality
+Every HMM problem has a layer you can't see and a layer you can:
+
+| | Hidden layer (the truth) | Observed layer (the clues) |
+|---|---|---|
+| Casino | which coin the dealer holds: Fair, Fair, Biased, Biased, Fair… | the flips: H, T, H, H, T… |
+| Genome | which kind of region each base is in: island, island, background… | the bases: C, G, C, A, T… |
+
+The hidden layer moves from state to state (the **transitions**); at each step the current state produces one visible symbol (the **emissions**). Our job is always to reason backwards from the clues to the hidden story.
+:::
+
 {{widget:casino}}
 
 ## Formal definition
@@ -32,6 +43,10 @@ An HMM is a tuple $(\Sigma, Q, A, E)$, plus initial probabilities:
 We write the hidden path as π = π₁π₂…πₙ and the observed sequence as x = x₁x₂…xₙ.
 
 **The Markov property:** the next state depends only on the current state, not on the history. So even after five Island states in a row, the probability of staying in Island is still just $A_{II}$. The emission at position i depends only on the state at position i.
+
+:::story "Memoryless", with the weather
+A simple weather model is Markovian if tomorrow's chance of rain depends only on **today's** weather, not on last week's. That ignores real information, but it makes the maths tractable: the best path to today only needs the best paths to yesterday, which is exactly what lets Viterbi and Forward fill their tables one column at a time.
+:::
 
 {{ref:math#conditional-probability-and-independence}}
 
@@ -110,6 +125,16 @@ $$f_l(t) = E_l(x_t)\sum_k f_k(t-1)\,A_{kl}, \qquad \Pr(x) = \sum_k f_k(n)$$
 **Check on HH:** $f_F(1) = 0.25$, $f_B(1) = 0.375$; then $f_F(2) = 0.5 \cdot (0.25 \cdot 0.9 + 0.375 \cdot 0.1) = 0.13125$ and $f_B(2) = 0.75 \cdot (0.25 \cdot 0.1 + 0.375 \cdot 0.9) = 0.27188$. Their sum is **0.4031**, the same total as summing all four paths in the table.
 
 **Handout example:** for x = GGCA, $f_H(2) = 0.3 \cdot (0.15\cdot0.5 + 0.1\cdot0.4) = 0.0345$, …, and $\Pr(\text{GGCA}) = 0.0013767 + 0.0024665 =$ **0.0038432**. Compare with a uniform background model: $0.25^4 \approx 0.0039$. The toy HMM is *not* a better explanation of GGCA than random DNA, a good reminder to **always compare against a null model**.
+
+:::story Viterbi vs Forward: the pizza delivery
+A pizza arrives at your door.
+- **Viterbi** asks: which single route did the driver most probably take? One winner; at each junction keep only the best way in (**max**).
+- **Forward** asks: how likely was a pizza to reach the door at all, counting every possible route? Every route contributes; at each junction add up all the ways in (**sum**).
+:::
+
+:::think Why would you ever want Pr(x), the total probability over all paths?
+To **compare models**. Build one HMM from known coding regions and one from non-coding DNA, run Forward on a new sequence under each, and compare $\Pr(x \mid \text{coding})$ with $\Pr(x \mid \text{non-coding})$. If the first is 10⁴ times larger, the sequence looks far more like coding DNA. Gene finders and protein-family search (HMMER and Pfam: "which family's HMM explains this protein best?") work this way.
+:::
 
 **Backward algorithm.** $b_k(t) = \Pr(x_{t+1..n}\mid \pi_t = k)$, the probability of the rest of the sequence given state k at position t, computed from right to left.
 

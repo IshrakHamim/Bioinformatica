@@ -87,7 +87,7 @@ html, body { margin: 0; padding: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--sans);
+  font-family: var(--sans), 'Noto Sans Bengali', 'Hind Siliguri', 'Kohinoor Bangla', 'Bangla Sangam MN', sans-serif;
   font-size: 1rem;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -207,9 +207,16 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85re
 .callout.warn { border-left: 5px solid var(--warn); }
 .callout.exam, .callout.example { border-left: 5px solid var(--danger); }
 .callout.sota { border-left: 5px solid #9c36b5; }
+.callout.story { border-left: 5px solid #e67700; background: var(--bg-sunk); }
+.callout.think { border-left: 5px solid var(--accent-2); padding: 10px 16px; }
+.callout.think > summary { cursor: pointer; list-style: none; margin-bottom: 0; }
+.callout.think > summary::-webkit-details-marker { display: none; }
+.callout.think > summary::after { content: 'Show answer'; margin-left: auto; font-size: 0.8rem; font-weight: 600; color: var(--accent-2); white-space: nowrap; }
+.callout.think[open] > summary::after { content: 'Hide'; }
+.callout.think[open] > summary { margin-bottom: 8px; }
 
 .section-card { scroll-margin-top: 70px; }
-.section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .section-head h2 { margin-top: 0; }
 .done-btn.done { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 
@@ -336,3 +343,11 @@ svg .dim { fill: var(--text-dim); }
 .pref-preview { margin-top: 4px; padding: 14px; border-radius: 12px; background: var(--bg-sunk); border: 1px solid var(--border); }
 .dash > *, .dash .grid > * { min-width: 0; }
 .dash .grid > .card + .card { margin-top: 0; }
+
+/* Language switch and Bangla text */
+.lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 2px; background: var(--bg-sunk); margin: 8px 0; }
+.lang-switch button { border: 0; background: transparent; color: var(--text-dim); font: inherit; font-size: 0.82rem; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+.lang-switch button.on { background: var(--accent); color: #fff; }
+.lang-switch.small { margin: 0; }
+.lang-switch.small button { font-size: 0.72rem; padding: 2px 8px; }
+.prose:lang(bn) { line-height: 1.85; }

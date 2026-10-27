@@ -6,6 +6,12 @@
 
 **Why viruses are ideal for this.** Coronaviruses, influenza and HIV are **RNA viruses**, and RNA replication is error-prone, so they mutate fast. That's why the flu shot changes every year and why HIV has many subtypes. It also means that viral genomes collected even weeks apart differ in a few positions, which is exactly the information needed to reconstruct who infected whom. The same methods traced SARS-CoV-2 variants and HIV's origin in chimpanzee SIV.
 
+:::story Copying manuscripts by hand
+Before printing, books were copied by scribes, and every scribe made a few mistakes. A copy made from a flawed copy inherits its mistakes and adds new ones. Collect the surviving manuscripts, and the pattern of **shared mistakes** tells you who copied from whom: two copies sharing ten unusual errors probably descend from the same lost parent. Scholars really do build such family trees of manuscripts.
+
+Genomes are copied the same way, with mutations as the scribal errors. **Distance methods** count how many differences separate each pair of copies and fit a tree to those counts. **Character-based methods** look at each error individually and ask which tree explains who shares it.
+:::
+
 Before the formal definitions, this short video shows how to read a tree and the basic logic of building one:
 
 {{video:09eD4A_HxVQ}}
@@ -48,6 +54,10 @@ $$D_{km} = \frac{D_{ik} + D_{jk} - D_{ij}}{2}$$
 and repeat on the smaller matrix. (The formula: the path from k to i and the path from k to j both pass through m, so their sum counts k–m twice plus i–m and j–m, which together are $D_{ij}$.)
 
 **The pitfall.** The closest pair is **not always** a pair of neighbours. If one leaf evolved very fast, its limb is long, so it is far from everyone, even from its own sibling. Neighbour joining (below) fixes this.
+
+:::think Why can the closest pair of leaves fail to be siblings?
+Distance on a tree is the sum of the two limbs plus the path between their parents. Picture siblings A and B where A evolved very fast (a long limb): A is now far from **everyone**, including B, and B may be closer to some cousin C than to A. Picking the smallest $D_{ij}$ would wrongly join B and C. Neighbour joining fixes this by subtracting each leaf's total distance to everyone else, so a leaf that is far from all others gets compensated.
+:::
 
 **Limb Length Theorem.** For an additive matrix and a leaf j, the length of j's limb is
 $$\text{LimbLength}(j) = \min_{i,k \neq j} \frac{D_{ij} + D_{jk} - D_{ik}}{2}$$
@@ -99,6 +109,10 @@ In reality, rates often differ between lineages (generation time, population siz
 
 **UPGMA's weaknesses:** it doesn't actually fit a tree to D; it fails when the clock is violated, even on additive matrices; and averages must be weighted by cluster size. Still, it is simple and widely used as a quick baseline.
 
+:::think When does UPGMA build the wrong tree?
+When the **molecular clock** fails. UPGMA assumes every lineage evolves at the same rate, so it always joins the closest pair and places it at half their distance. If one lineage evolved fast, its long branches make it look distant from its true relatives, and UPGMA attaches it in the wrong place, even when the distances fit a tree perfectly (are additive). Neighbour joining makes no clock assumption and recovers the right tree for additive data.
+:::
+
 ## Neighbor joining
 
 **Saitou & Nei (1987)** fixed the "closest pair isn't always neighbours" problem by correcting each distance for how far each leaf is from *everyone*. With $\text{TotalDistance}_D(i) = \sum_k D_{ik}$:
@@ -134,6 +148,10 @@ Neighbour joining reconstructs the exact tree for additive matrices, produces a 
 Distance methods throw information away when they compress an alignment into one number per pair. **Character-based** methods work directly on the alignment columns.
 
 **Parsimony** prefers the history with the **fewest mutations**, the simplest explanation of the data.
+
+:::think What do distance methods throw away that character-based methods keep?
+A distance matrix squeezes each pair of whole sequences into one number. It forgets **which** positions differ and **how** (which letter changed to which), and so it loses the shared, specific changes that group relatives together. Character-based methods (parsimony, maximum likelihood) keep every column and also infer the ancestral letters at internal nodes. The price is more computation.
+:::
 
 **Small Parsimony Problem:** given a tree and the letters at its leaves (one alignment column at a time), assign letters to the internal nodes **minimizing the total number of changes** along the edges (the **parsimony score**).
 

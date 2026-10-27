@@ -271,3 +271,40 @@ describe('ml', () => {
     expect(mulberry32(1)()).toBe(mulberry32(1)());
   });
 });
+
+describe('algorithm traces (Algorithms foundation widgets)', () => {
+  it('MinCoins DP vs greedy', async () => {
+    const G = await import('./algo');
+    const dp = G.minCoinsDP([1, 4, 5], 8);
+    expect(dp.best.slice(0, 9)).toEqual([0, 1, 2, 3, 1, 1, 2, 3, 2]);
+    expect(dp.coinsUsed).toEqual([4, 4]);
+    expect(G.greedyChange([1, 4, 5], 8)).toEqual([5, 1, 1, 1]);
+    expect(G.minCoinsDP([1, 3, 4], 6).best[6]).toBe(2);
+    expect(G.greedyChange([1, 3, 4], 6)).toEqual([4, 1, 1]);
+  });
+  it('BFS distances and DFS order', async () => {
+    const G = await import('./algo');
+    const g = { A: ['B', 'C'], B: ['A', 'D'], C: ['A', 'D'], D: ['B', 'C', 'E'], E: ['D'] };
+    const bfs = G.graphSearchTrace(g, 'A', 'bfs');
+    expect(bfs[bfs.length - 1].dist).toEqual({ A: 0, B: 1, C: 1, D: 2, E: 3 });
+    expect(bfs[bfs.length - 1].visited).toEqual(['A', 'B', 'C', 'D', 'E']);
+    const dfs = G.graphSearchTrace(g, 'A', 'dfs');
+    expect(dfs[dfs.length - 1].visited).toEqual(['A', 'B', 'D', 'C', 'E']);
+  });
+  it('Hierholzer spells the assembly example and uses every edge', async () => {
+    const G = await import('./algo');
+    const reads = ['AGC', 'ATG', 'CAG', 'CTG', 'GCA', 'GCT', 'TGA', 'TGC'];
+    const { path } = G.hierholzerTrace(reads.map((r) => [r.slice(0, 2), r.slice(1)] as [string, string]), 'AT');
+    expect(path).toHaveLength(reads.length + 1);
+    const spelled = path[0] + path.slice(1).map((x) => x[1]).join('');
+    expect(S.composition(spelled, 3).sort()).toEqual([...reads].sort());
+  });
+  it('binary search lower bound and fib call counts', async () => {
+    const G = await import('./algo');
+    const arr = ['AAA', 'ACG', 'GAT', 'GAT', 'TTA'];
+    expect(G.binarySearchTrace(arr, 'GAT')).toMatchObject({ index: 2, found: true });
+    expect(G.binarySearchTrace(arr, 'CCC')).toMatchObject({ index: 2, found: false });
+    expect(G.fibCalls(5, false)).toHaveLength(15);
+    expect(G.fibCalls(5, true)).toHaveLength(9);
+  });
+});

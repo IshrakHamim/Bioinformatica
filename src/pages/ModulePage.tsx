@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { MODULE_BY_ID } from '../data';
+import { MODULE_BY_ID, localizedSections } from '../data';
+import { LangToggle } from '../components/LangToggle';
+import { useLang } from '../lib/prefs';
 import { FlashcardDeck } from '../components/Flashcards';
 import { MindMap } from '../components/MindMap';
 import { Quiz } from '../components/Quiz';
@@ -54,6 +56,10 @@ export default function ModulePage() {
   const [params, setParams] = useSearchParams();
   const tab = (TABS.includes(params.get('tab') as Tab) ? params.get('tab') : 'learn') as Tab;
   const p = useProgress();
+  const [lang, setLang] = useLang();
+  // per-section language overrides; changing the page language resets them, so the page switch applies to every section
+  const [override, setOverride] = useState<Record<string, 'en' | 'bn'>>({});
+  useEffect(() => setOverride({}), [id, lang]);
   useEffect(() => {
     if (m && p.lastModule !== m.id) update((pp) => { pp.lastModule = m.id; });
   }, [m?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -74,10 +80,20 @@ export default function ModulePage() {
     if (!wasDone) toast(`+${XP.section} XP · section complete`);
   };
   const games = gamesFor(m.id);
+  const enSecs = localizedSections(m, 'en').secs;
+  const bnLoc = localizedSections(m, 'bn');
+  const translated = bnLoc.translated;
+  const pageBn = lang === 'bn' && translated;
   const cards = m.flashcards.map((c) => ({ ...c, key: `${m.id}/${c.id}`, module: m.code }));
   return (
     <div>
-      <div className="row small muted"><Link to="/learn">Learning paths</Link> › {m.code}</div>
+      <div className="spread">
+        <div className="row small muted"><Link to="/learn">Learning paths</Link> › {m.code}</div>
+        <div className="row">
+          {lang === 'bn' && !translated && <span className="small muted" lang="bn">এই লেসনের বাংলা ব্যাখ্যা এখনো তৈরি হয়নি।</span>}
+          <LangToggle value={lang} onChange={setLang} label="Language for the whole page" />
+        </div>
+      </div>
       <div className="spread" style={{ marginTop: 6 }}>
         <div className="row">
           <div className="mod-icon" style={{ background: m.color, width: 52, height: 52, fontSize: '1.6rem' }}>{m.icon}</div>
@@ -106,23 +122,28 @@ export default function ModulePage() {
       {tab === 'learn' && (
         <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
           <nav className="card small" aria-label="Sections">
-            <b>Sections</b>
+            <b>{pageBn ? 'অংশসমূহ' : 'Sections'}</b>
             <ol style={{ margin: '6px 0 0', paddingLeft: 20 }}>
-              {s.secs.map((sec) => (
-                <li key={sec.id}>
+              {(pageBn ? bnLoc.secs : enSecs).map((sec) => (
+                <li key={sec.id} lang={pageBn ? 'bn' : undefined}>
                   <a href={`#${sec.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(sec.id)?.scrollIntoView({ behavior: 'smooth' }); }}>{sec.title}</a>
                   {p.sections[`${m.id}/${sec.id}`] && ' ✓'}
                 </li>
               ))}
             </ol>
           </nav>
-          {s.secs.map((sec) => {
-            const done = !!p.sections[`${m.id}/${sec.id}`];
+          {enSecs.map((enSec, i) => {
+            const done = !!p.sections[`${m.id}/${enSec.id}`];
+            const secLang = translated ? override[enSec.id] ?? lang : 'en';
+            const sec = secLang === 'bn' ? bnLoc.secs[i] : enSec;
             return (
-              <article key={sec.id} id={sec.id} className="card section-card">
+              <article key={enSec.id} id={enSec.id} className="card section-card" lang={secLang === 'bn' ? 'bn' : undefined}>
                 <div className="section-head">
                   <h2>{sec.title}</h2>
-                  <button className={`btn small done-btn ${done ? 'done' : ''}`} onClick={() => toggle(sec.id)}>{done ? '✓ Completed' : 'Mark complete'}</button>
+                  <div className="row" style={{ justifyContent: 'flex-end' }}>
+                    {translated && <LangToggle small value={secLang} onChange={(l) => setOverride((o) => ({ ...o, [enSec.id]: l }))} label="Language for this section" />}
+                    <button className={`btn small done-btn ${done ? 'done' : ''}`} onClick={() => toggle(enSec.id)}>{secLang === 'bn' ? (done ? '✓ সম্পন্ন' : 'সম্পন্ন') : done ? '✓ Completed' : 'Mark complete'}</button>
+                  </div>
                 </div>
                 <LessonModule.Provider value={m}>
                   <Markdown source={sec.body} />

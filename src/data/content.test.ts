@@ -6,7 +6,8 @@ import * as AL from '../lib/bio/alignment';
 import * as H from '../lib/bio/hmm';
 import * as M from '../lib/bio/motifs';
 import { CONCEPTS, CONCEPT_BY_ID } from './concepts';
-import { MODULES, MODULE_BY_ID, TRACKS, sectionsOf } from './index';
+import { BN_CONTENT, MODULES, MODULE_BY_ID, TRACKS, sectionsOf } from './index';
+import { splitSections } from './types';
 
 // Vite's ?raw imports are resolved by the vite plugin pipeline vitest uses, so MODULES load normally.
 
@@ -76,7 +77,8 @@ describe('content integrity', () => {
   });
   it('content markdown has no unbalanced callouts', () => {
     const dir = join(__dirname, 'content');
-    for (const f of readdirSync(dir)) {
+    const files = [...readdirSync(dir).filter((f) => f.endsWith('.md')), ...readdirSync(join(dir, 'bn')).map((f) => `bn/${f}`)];
+    for (const f of files) {
       const lines = readFileSync(join(dir, f), 'utf8').split('\n');
       let open = 0;
       for (const l of lines) {
@@ -84,6 +86,35 @@ describe('content integrity', () => {
         else if (l.trim() === ':::') open--;
       }
       expect(open, f).toBe(0);
+    }
+  });
+  it('every :::think question has a title (it is the visible, clickable part)', () => {
+    const dir = join(__dirname, 'content');
+    const files = [...readdirSync(dir).filter((f) => f.endsWith('.md')), ...readdirSync(join(dir, 'bn')).map((f) => `bn/${f}`)];
+    for (const f of files)
+      for (const l of readFileSync(join(dir, f), 'utf8').split('\n')) if (/^:::think\b/.test(l)) expect(l.slice(8).trim(), `${f}: ${l}`).not.toBe('');
+  });
+});
+
+describe('Bangla lessons', () => {
+  // Embeds and callout types, in order: the translation may reword everything else freely.
+  const skeleton = (body: string) => [...body.matchAll(/^(\{\{[^}]+\}\}|:::\w+)/gm)].map((x) => x[1]);
+  it('every Bangla lesson belongs to a module and mirrors its sections, embeds and callouts', () => {
+    for (const [id, md] of Object.entries(BN_CONTENT)) {
+      const m = MODULE_BY_ID[id];
+      expect(m, `bn/${id}.md has no module`).toBeDefined();
+      const en = sectionsOf(m);
+      const bn = splitSections(md);
+      expect(bn.map((x) => x.id === 'overview'), `${id}: section count / overview`).toEqual(en.map((x) => x.id === 'overview'));
+      en.forEach((sec, i) => expect(skeleton(bn[i].body), `${id} § ${sec.title}`).toEqual(skeleton(sec.body)));
+    }
+  });
+  it('Bangla lessons are actually in Bangla', () => {
+    for (const [id, md] of Object.entries(BN_CONTENT)) {
+      const prose = md.replace(/```[\s\S]*?```/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\$[^$\n]+\$/g, '').replace(/`[^`\n]+`/g, '').replace(/^\{\{.*\}\}$/gm, '');
+      const bengali = (prose.match(/[\u0980-\u09FF]/g) ?? []).length;
+      const latin = (prose.match(/[A-Za-z]/g) ?? []).length;
+      expect(bengali / (bengali + latin), id).toBeGreaterThan(0.4);
     }
   });
 });

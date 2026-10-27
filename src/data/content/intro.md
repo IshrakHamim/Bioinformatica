@@ -36,6 +36,15 @@ In practice the two overlap, and most researchers do some of both. The course yo
 
 **Genes.** A **gene** is a stretch of DNA carrying the instructions for a product, usually a protein. Humans have about **20,000 protein-coding genes**, and protein-coding sequence makes up only about **1–2%** of the genome. The rest includes regulatory switches, genes for non-coding RNAs, repeated sequences, and much whose function is still unknown.
 
+:::story The genome as a cookbook
+- The **genome** is a cookbook, and every cell in your body carries a complete copy.
+- A **gene** is one recipe. **Chromosomes** are the volumes the book is bound in.
+- The master copy never leaves the library (the nucleus). To cook, the cell makes a disposable **photocopy** of one recipe, the **mRNA** (transcription).
+- The **ribosome** is the kitchen: it reads the photocopy three letters at a time and assembles the dish, a **protein** (translation).
+- A liver cell and a neuron have the same cookbook but cook different recipes. Deciding which recipes, when and how much, is **gene regulation**, done by **transcription factors**, the switches you'll hunt for in the Motifs lesson.
+- A variant is a misprint in one copy of the book. Many are harmless; some ruin a recipe.
+:::
+
 **Variation.** Any two humans are about **99.9% identical** in DNA sequence. The remaining ~0.1% is still millions of positions, called **genetic variants**. A single changed letter can alter a protein's shape, or how much of it is made, or when and where. Variants contribute to traits (eye colour, height), disease risk and drug response. Finding them is one of bioinformatics' main jobs (variant calling).
 
 :::bio Genotype → phenotype
@@ -100,6 +109,10 @@ Watch this short animation first; the steps below then name what you saw.
 
 **Why this matters for the course.** The lagging strand spends more time single-stranded, and single-stranded DNA mutates differently. Over evolutionary time that leaves a measurable imbalance between G and C on the two halves of a bacterial chromosome, called the **GC skew**. The next lesson turns that into an algorithm that finds oriC.
 
+:::think Why can't DNA polymerase just copy both strands continuously, in the same direction as the fork?
+Because it can only add a nucleotide to the **3′ end** of a growing strand, so new DNA always grows 5′→3′. The two template strands run in opposite directions, so the new strand on one of them must grow *away* from the fork. The cell solves this by building that strand backwards in short Okazaki fragments and stitching them together, which is the asymmetry the oriC lesson exploits.
+:::
+
 ## Transcription: DNA → RNA
 
 DNA stays in the nucleus as the master copy. To use a gene, the cell makes a working copy in **RNA** (ribonucleic acid). This is **transcription**.
@@ -147,6 +160,10 @@ The **ribosome** reads an mRNA and builds a protein. It reads the mRNA in non-ov
 | start at base 3 | GGC CTT TTA | G L L |
 
 Each strand has 3 frames, and there are 2 strands, so a DNA sequence has **6 possible reading frames**. An **open reading frame (ORF)** runs from a start codon to the next in-frame stop codon. Long ORFs are a first clue that a region codes for a protein. That idea is the start of gene finding.
+
+:::think One letter in a gene's coding sequence changes. Why is that sometimes harmless and sometimes catastrophic, while deleting a single letter is almost always catastrophic?
+A **substitution** changes one codon. Because the code is redundant, it may still code the same amino acid (a *synonymous* change, often harmless); it may swap in a similar amino acid; or it may create a stop codon and cut the protein short. A **single-base insertion or deletion** shifts the reading frame: every codon after it is read in the wrong groups of three (a **frameshift**), so the rest of the protein is garbage and usually hits a premature stop. That's also why indels of a multiple of 3 bases are often tolerated better.
+:::
 
 {{widget:central-dogma}}
 

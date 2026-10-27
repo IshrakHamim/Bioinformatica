@@ -107,6 +107,7 @@ export function useProgress(): Progress {
       return () => listeners.delete(l);
     },
     () => state,
+    () => state,
   );
 }
 

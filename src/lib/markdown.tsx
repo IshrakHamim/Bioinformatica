@@ -7,7 +7,8 @@ import { WIDGETS } from '../widgets/registry';
 import { YouTube } from '../components/YouTube';
 import { GameCard } from '../components/GameCard';
 import { GAME_BY_ID } from '../games/registry';
-import { MODULE_BY_ID, VIDEO_BY_ID, sectionsOf } from '../data';
+import { MODULE_BY_ID, VIDEO_BY_ID, localizedSections, sectionsOf } from '../data';
+import { useLang } from './prefs';
 import type { Module } from '../data/types';
 
 const marked = new Marked();
@@ -23,10 +24,13 @@ marked.use({
 });
 
 const CALLOUT_ICONS: Record<string, string> = {
-  tip: '💡', bio: '🧬', cs: '💻', warn: '⚠️', exam: '🎯', example: '✍️', sota: '🚀',
+  tip: '💡', bio: '🧬', cs: '💻', warn: '⚠️', exam: '🎯', example: '✍️', sota: '🚀', story: '📖', think: '🤔',
 };
 
-/** :::type Title ... ::: blocks become styled callouts (rendered recursively). */
+/**
+ * :::type Title ... ::: blocks become styled callouts (rendered recursively).
+ * `:::think Question` is collapsible: the question shows, the body (the answer) opens on click.
+ */
 function renderMd(src: string): string {
   const out: string[] = [];
   const lines = src.split('\n');
@@ -43,6 +47,12 @@ function renderMd(src: string): string {
       i++;
       while (i < lines.length && lines[i].trim() !== ':::') inner.push(lines[i++]);
       const [, type, title] = m;
+      if (type === 'think') {
+        out.push(
+          `<details class="callout think"><summary class="callout-title">${CALLOUT_ICONS.think} ${marked.parseInline(title)}</summary>${marked.parse(inner.join('\n'))}</details>`,
+        );
+        continue;
+      }
       out.push(
         `<div class="callout ${type}">${title ? `<div class="callout-title">${CALLOUT_ICONS[type] ?? ''} ${title}</div>` : ''}${marked.parse(inner.join('\n'))}</div>`,
       );
@@ -82,11 +92,13 @@ export function parseRefs(spec: string) {
 function Refresher({ spec }: { spec: string }) {
   const refs = useMemo(() => parseRefs(spec), [spec]);
   const [open, setOpen] = useState<string | null>(null);
+  const [lang] = useLang();
   const cur = refs.find((r) => r.key === open);
+  const curSec = cur?.m && cur.s ? localizedSections(cur.m, lang).secs.find((x) => x.id === cur.s!.id) ?? cur.s : null;
   return (
     <div className="refresher">
       <div className="refresher-row">
-        <span className="refresher-label">🧱 Stuck? Quick refresher:</span>
+        <span className="refresher-label">🧱 {lang === 'bn' ? 'আটকে গেছেন? ঝালিয়ে নিন:' : 'Stuck? Quick refresher:'}</span>
         {refs.map((r) =>
           r.m && r.s ? (
             <button key={r.key} className={`refresher-chip ${open === r.key ? 'on' : ''}`} aria-expanded={open === r.key} onClick={() => setOpen(open === r.key ? null : r.key)}>
@@ -97,17 +109,17 @@ function Refresher({ spec }: { spec: string }) {
           ),
         )}
       </div>
-      {cur?.m && cur.s && (
+      {cur?.m && curSec && (
         <div className="refresher-panel fade-in">
           <div className="spread small">
-            <b>{cur.m.code} {cur.m.title} › {cur.s.title}</b>
+            <b>{cur.m.code} {cur.m.title} › {curSec.title}</b>
             <span className="row">
-              <Link to={`/m/${cur.m.id}?tab=learn&s=${cur.s.id}`}>Open the full lesson →</Link>
+              <Link to={`/m/${cur.m.id}?tab=learn&s=${curSec.id}`}>{lang === 'bn' ? 'পুরো লেসন খুলুন →' : 'Open the full lesson →'}</Link>
               <button className="btn small" onClick={() => setOpen(null)}>Close</button>
             </span>
           </div>
           <LessonModule.Provider value={cur.m}>
-            <Markdown source={cur.s.body} />
+            <Markdown source={curSec.body} />
           </LessonModule.Provider>
         </div>
       )}
